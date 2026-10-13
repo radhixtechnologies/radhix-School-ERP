@@ -12,7 +12,9 @@ import {
   Award,
   Bus,
   ShieldCheck,
-  LifeBuoy
+  LifeBuoy,
+  Navigation,
+  UserCheck
 } from "lucide-react";
 
 interface Props {
@@ -38,14 +40,17 @@ export const Sidebar: React.FC<Props> = ({
 }) => {
   const schoolNavItems = [
     { id: "dashboard", label: "Dashboard Overview", icon: LayoutDashboard },
+    { id: "counsellor", label: "Admission Counselling Hub", icon: UserCheck },
+    { id: "admissions", label: "Student Registry", icon: GraduationCap },
     { id: "academics", label: "Classes & Sections", icon: School },
     { id: "homework", label: "Homework Diary", icon: BookOpen },
     { id: "exams", label: "Exams & Marksheets", icon: Award },
-    { id: "admissions", label: "Student Registry", icon: GraduationCap },
     { id: "staff", label: "Teachers & Staff", icon: Users },
     { id: "attendance", label: "Daily Attendance Hub", icon: CalendarCheck },
     { id: "fees", label: "Fee Management (Razorpay)", icon: CreditCard },
-    { id: "transport", label: "Bus & Transport Tracking", icon: Bus },
+    { id: "vehicles", label: "School Fleet & Vehicles", icon: Bus },
+    { id: "drivers", label: "Driver Registration Hub", icon: ShieldCheck },
+    { id: "transport", label: "Live GPS Bus Tracking", icon: Navigation },
     { id: "notices", label: "Notices & Circulars", icon: Bell },
     { id: "tickets", label: "Helpdesk & Tickets", icon: LifeBuoy },
   ];
@@ -91,13 +96,13 @@ export const Sidebar: React.FC<Props> = ({
               borderRadius: "12px",
               background: isSuperAdmin
                 ? "linear-gradient(135deg, #1E1B4B 0%, #4338CA 100%)"
-                : "linear-gradient(135deg, #474A74 0%, #312E81 100%)",
+                : "var(--primary-gradient, linear-gradient(135deg, #474A74 0%, #312E81 100%))",
               color: "#fff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontWeight: "900",
-              boxShadow: "0 6px 16px -2px rgba(71, 74, 116, 0.3)"
+              boxShadow: "0 6px 16px -2px rgba(0, 0, 0, 0.2)"
             }}>
               {isSuperAdmin ? <ShieldCheck size={22} /> : <School size={22} />}
             </div>
@@ -156,14 +161,14 @@ export const Sidebar: React.FC<Props> = ({
                   gap: "12px",
                   padding: "11px 14px",
                   borderRadius: "12px",
-                  background: active ? "#474A74" : "transparent",
+                  background: active ? "var(--primary-color, #474A74)" : "transparent",
                   color: active ? "#FFFFFF" : "#64748B",
                   fontWeight: active ? "700" : "600",
                   fontSize: "13px",
                   textAlign: "left",
                   border: "none",
                   cursor: "pointer",
-                  boxShadow: active ? "0 4px 12px rgba(71, 74, 116, 0.25)" : "none",
+                  boxShadow: active ? "0 4px 12px rgba(0, 0, 0, 0.15)" : "none",
                   transition: "all 0.2s ease"
                 }}
               >
@@ -173,6 +178,7 @@ export const Sidebar: React.FC<Props> = ({
             );
           })}
         </nav>
+
       </div>
 
       {/* Path Indicator and Portal Switcher for Super Admin */}

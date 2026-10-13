@@ -1,4 +1,4 @@
-﻿import { Router, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../../database/connection";
@@ -92,6 +92,18 @@ router.post("/admit", requireRole(["INSTITUTE_ADMIN", "STAFF"]), async (req: Req
       admission_date,
       student_email,
       student_password,
+      father_name,
+      mother_name,
+      father_occupation,
+      mother_occupation,
+      student_aadhaar,
+      admission_type,
+      previous_school,
+      previous_board,
+      previous_class,
+      previous_tc_number,
+      tc_issue_date,
+      documents_json,
     } = req.body;
 
     if (!first_name) {
@@ -162,10 +174,22 @@ router.post("/admit", requireRole(["INSTITUTE_ADMIN", "STAFF"]), async (req: Req
       course_id: course_id || null,
       department_id: department_id || null,
       semester_id: semester_id || null,
-      parent_name: parent_name || "",
+      parent_name: parent_name || father_name || "",
       parent_phone: parent_phone || "",
       address: address || "",
       admission_date: admission_date || new Date().toISOString().split("T")[0],
+      father_name: father_name || null,
+      mother_name: mother_name || null,
+      father_occupation: father_occupation || null,
+      mother_occupation: mother_occupation || null,
+      student_aadhaar: student_aadhaar || null,
+      admission_type: admission_type || "FRESHER",
+      previous_school: previous_school || null,
+      previous_board: previous_board || null,
+      previous_class: previous_class || null,
+      previous_tc_number: previous_tc_number || null,
+      tc_issue_date: tc_issue_date || null,
+      documents_json: typeof documents_json === "string" ? documents_json : JSON.stringify(documents_json || []),
     });
 
     res.status(201).json({

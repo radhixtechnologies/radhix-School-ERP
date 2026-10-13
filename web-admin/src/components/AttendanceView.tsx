@@ -1,5 +1,19 @@
 import { useState, useEffect } from "react";
-import { Check, X, Clock, CheckCircle2 } from "lucide-react";
+import {
+  Check,
+  X,
+  Clock,
+  CheckCircle2,
+  CalendarCheck,
+  Users,
+  AlertCircle,
+  TrendingUp,
+  Percent,
+  Calendar,
+  Send,
+  Sparkles,
+  School
+} from "lucide-react";
 
 interface Props {
   institute: any;
@@ -96,41 +110,150 @@ export const AttendanceView = ({ institute, token }: Props) => {
     } catch {}
   };
 
+  // Real-time Overview Analytics
+  const totalStudents = students.length;
+  const presentCount = students.filter((s) => (attendanceMap[s.student_id] || "PRESENT") === "PRESENT").length;
+  const absentCount = students.filter((s) => attendanceMap[s.student_id] === "ABSENT").length;
+  const lateCount = students.filter((s) => attendanceMap[s.student_id] === "LATE").length;
+  const halfDayCount = students.filter((s) => attendanceMap[s.student_id] === "HALF_DAY").length;
+  const attendanceRate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+  const currentCohortName = isSchool
+    ? (classes.find((c) => c.id === selectedClassId)?.name || "Selected Class")
+    : (courses.find((c) => c.id === selectedClassId)?.name || "Selected Course");
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      {/* Top Banner (Preskool Indigo/Blue theme) */}
+      <div style={{
+        background: "linear-gradient(135deg, #3D5EE1 0%, #1E3A8A 100%)",
+        borderRadius: "18px",
+        padding: "24px 28px",
+        color: "#fff",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "20px",
+        boxShadow: "0 10px 25px -5px rgba(61, 94, 225, 0.3)"
+      }}>
         <div>
-          <h2 style={{ fontSize: "20px", fontWeight: "800" }}>Daily Attendance Register</h2>
-          <p style={{ fontSize: "13px", color: "#64748b" }}>Take fast attendance for entire class/batch</p>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.2)", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: 800, marginBottom: "8px" }}>
+            <CalendarCheck size={14} color="#93C5FD" /> Real-time Class Attendance Hub
+          </div>
+          <h1 style={{ fontSize: "22px", fontWeight: 900, margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
+            Daily Attendance & Cohort Analytics Overview
+          </h1>
+          <p style={{ margin: 0, opacity: 0.9, fontSize: "13px", maxWidth: "680px" }}>
+            Classroom roll register, absentee trend analysis, and automated parent absence notifications.
+          </p>
         </div>
 
         {saved && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#059669", background: "#ecfdf5", padding: "8px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "13px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#166534", background: "#DCFCE7", padding: "10px 18px", borderRadius: "12px", fontWeight: "800", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
             <CheckCircle2 size={18} />
-            <span>Attendance Saved!</span>
+            <span>Attendance Saved Successfully!</span>
           </div>
         )}
       </div>
 
+      {/* DASHBOARD OVERVIEW: 4 ATTENDANCE METRICS CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "20px" }}>
+        {/* Card 1: Attendance Percentage */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Overall Attendance Rate</div>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: attendanceRate >= 80 ? "#16A34A" : attendanceRate >= 60 ? "#D97706" : "#DC2626", marginTop: "2px" }}>
+                {attendanceRate}%
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#DCFCE7", color: "#16A34A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Percent size={20} />
+            </div>
+          </div>
+          {/* Visual Progress Bar */}
+          <div style={{ width: "100%", height: "6px", background: "#F1F5F9", borderRadius: "10px", overflow: "hidden", marginBottom: "6px" }}>
+            <div style={{ width: `${attendanceRate}%`, height: "100%", background: "linear-gradient(90deg, #10B981, #059669)", borderRadius: "10px" }} />
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748B", fontWeight: 600 }}>
+            {currentCohortName} • {date}
+          </div>
+        </div>
+
+        {/* Card 2: Present Count */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Present Students in Class</div>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: "#16A34A", marginTop: "2px" }}>
+                {presentCount} <span style={{ fontSize: "14px", color: "#64748B", fontWeight: 600 }}>/ {totalStudents}</span>
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#F0FDF4", color: "#16A34A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Check size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: "#16A34A", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+            <CheckCircle2 size={13} /> Active in Classroom Learning
+          </div>
+        </div>
+
+        {/* Card 3: Absent Count */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Absent Students Today</div>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: absentCount > 0 ? "#DC2626" : "#64748B", marginTop: "2px" }}>
+                {absentCount}
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#FEF2F2", color: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <X size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: absentCount > 0 ? "#DC2626" : "#64748B", fontWeight: 700 }}>
+            {absentCount > 0 ? `⚠️ ${absentCount} Parents Pending Alert` : "✓ Zero Absentees Today"}
+          </div>
+        </div>
+
+        {/* Card 4: Late / Half Day */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Late Arrivals / Half-Day</div>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: "#D97706", marginTop: "2px" }}>
+                {lateCount + halfDayCount}
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#FEF3C7", color: "#D97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Clock size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>
+            {lateCount} Late • {halfDayCount} Half-Day
+          </div>
+        </div>
+      </div>
+
+      {/* Cohort & Date Filter Control Bar */}
       <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "20px", marginBottom: "20px", display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
         <div>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Attendance Date</label>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "4px", color: "#334155" }}>📅 Attendance Date</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #cbd5e1" }}
+            style={{ padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #cbd5e1", fontSize: "13px" }}
           />
         </div>
 
         <div>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>
-            {isSchool ? "Select Class" : "Select Course"}
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "4px", color: "#334155" }}>
+            {isSchool ? "🏫 Select Class & Section" : "🎓 Select Course & Cohort"}
           </label>
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            style={{ padding: "8px 14px", borderRadius: "8px", border: "1.5px solid #cbd5e1", background: "#fff" }}
+            style={{ padding: "8px 14px", borderRadius: "8px", border: "1.5px solid #cbd5e1", background: "#fff", fontSize: "13px", fontWeight: 600 }}
           >
             {isSchool
               ? classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)
@@ -138,18 +261,24 @@ export const AttendanceView = ({ institute, token }: Props) => {
           </select>
         </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: "10px" }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button
             onClick={() => setAllStatus("PRESENT")}
-            style={{ background: "#ecfdf5", color: "#059669", padding: "8px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "13px" }}
+            style={{ background: "#ecfdf5", color: "#059669", padding: "8px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", border: "1px solid #A7F3D0", cursor: "pointer" }}
           >
             ✓ Mark All Present
           </button>
           <button
-            onClick={handleSave}
-            style={{ background: "#4f46e5", color: "#fff", padding: "8px 20px", borderRadius: "8px", fontWeight: "700", fontSize: "13px" }}
+            onClick={() => setAllStatus("ABSENT")}
+            style={{ background: "#FEF2F2", color: "#DC2626", padding: "8px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", border: "1px solid #FECACA", cursor: "pointer" }}
           >
-            Save Attendance
+            ✗ Mark All Absent
+          </button>
+          <button
+            onClick={handleSave}
+            style={{ background: "#3D5EE1", color: "#fff", padding: "8px 22px", borderRadius: "8px", fontWeight: "800", fontSize: "13px", border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(61,94,225,0.25)" }}
+          >
+            💾 Save Attendance
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Bell } from "lucide-react";
 
 interface Props {
@@ -93,11 +93,11 @@ export const NoticesView = ({ token }: Props) => {
 
             <form onSubmit={handlePublish}>
               <div style={{ marginBottom: "14px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Title (Hindi or English)*</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>Circular / Notice Title*</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. वार्षिक परीक्षा सूचना / Annual Exam Notice"
+                  placeholder="e.g. Annual Term Examination Circular & Schedule"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #cbd5e1" }}

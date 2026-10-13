@@ -1,4 +1,4 @@
-﻿import { Knex } from "knex";
+import { Knex } from "knex";
 
 export async function createTables(db: Knex): Promise<void> {
   // 1. Institutes Table (Multi-School Tenants)
@@ -335,4 +335,146 @@ export async function createTables(db: Knex): Promise<void> {
       table.string("current_status").defaultTo("ON_ROUTE"); // "ON_ROUTE", "DELAYED", "ARRIVED"
     });
   }
+
+  // 22. Fleet Drivers Registry & Verification
+  if (!(await db.schema.hasTable("drivers"))) {
+    await db.schema.createTable("drivers", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("name").notNullable();
+      table.string("phone").notNullable();
+      table.string("alternate_phone").nullable();
+      table.string("dob").nullable();
+      table.string("blood_group").nullable();
+      table.text("address").nullable();
+      table.string("aadhaar_number").nullable();
+      table.string("license_number").notNullable();
+      table.string("license_type").defaultTo("HMV_COMMERCIAL");
+      table.string("license_expiry").nullable();
+      table.string("badge_number").nullable();
+      table.integer("experience_years").defaultTo(0);
+      table.string("assigned_bus").nullable();
+      table.string("route").nullable();
+      table.string("police_verification").defaultTo("VERIFIED"); // VERIFIED, PENDING, UNDER_REVIEW
+      table.string("police_station").nullable();
+      table.string("police_report_date").nullable();
+      table.string("medical_fitness").defaultTo("FIT"); // FIT, PENDING, UNFIT
+      table.string("fitness_certificate_no").nullable();
+      table.string("fitness_doctor").nullable();
+      table.string("status").defaultTo("ACTIVE_DUTY"); // ACTIVE_DUTY, STANDBY, ON_LEAVE, INACTIVE
+      table.string("joining_date").nullable();
+      table.text("notes").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // 23. School Fleet Vehicles & Documentation Registry
+  if (!(await db.schema.hasTable("vehicles"))) {
+    await db.schema.createTable("vehicles", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("vehicle_number").notNullable();
+      table.string("vehicle_model").notNullable();
+      table.string("vehicle_type").defaultTo("BUS"); // BUS, MINI_BUS, VAN, CAB
+      table.integer("seating_capacity").defaultTo(40);
+      table.string("fuel_type").defaultTo("DIESEL"); // DIESEL, CNG, ELECTRIC, PETROL
+      table.string("chassis_number").nullable();
+      table.string("engine_number").nullable();
+      table.string("rc_number").nullable();
+      table.string("rc_expiry").nullable();
+      table.string("fitness_cert_no").nullable();
+      table.string("fitness_expiry").nullable();
+      table.string("insurance_policy_no").nullable();
+      table.string("insurance_company").nullable();
+      table.string("insurance_expiry").nullable();
+      table.string("puc_cert_no").nullable();
+      table.string("puc_expiry").nullable();
+      table.string("permit_number").nullable();
+      table.string("permit_expiry").nullable();
+      table.boolean("speed_governor_fitted").defaultTo(true);
+      table.integer("speed_limit_kmh").defaultTo(40);
+      table.string("gps_device_imei").nullable();
+      table.boolean("cctv_installed").defaultTo(true);
+      table.integer("cctv_camera_count").defaultTo(2);
+      table.boolean("fire_extinguisher").defaultTo(true);
+      table.boolean("emergency_exit").defaultTo(true);
+      table.string("assigned_driver_id").nullable();
+      table.string("assigned_driver_name").nullable();
+      table.string("assigned_route_id").nullable();
+      table.string("assigned_route_name").nullable();
+      table.string("status").defaultTo("ACTIVE"); // ACTIVE, MAINTENANCE, STANDBY, OUT_OF_SERVICE
+      table.text("notes").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // 24. Admission Inquiries & Leads (For Admission Counsellor)
+  if (!(await db.schema.hasTable("admission_inquiries"))) {
+    await db.schema.createTable("admission_inquiries", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("student_name").notNullable();
+      table.string("parent_name").notNullable();
+      table.string("phone").notNullable();
+      table.string("email").nullable();
+      table.string("class_applying").notNullable();
+      table.string("source").defaultTo("WALK_IN"); // WALK_IN, WEBSITE, REFERRAL, PHONE
+      table.string("status").defaultTo("NEW_INQUIRY"); // NEW_INQUIRY, CAMPUS_VISIT, FORM_SUBMITTED, ENROLLED, CLOSED
+      table.string("counsellor_name").defaultTo("Priya Sharma (Senior Counsellor)");
+      table.date("follow_up_date").nullable();
+      table.text("notes").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // Ensure extra document & admission columns in student_profiles
+  if (await db.schema.hasTable("student_profiles")) {
+    const hasFather = await db.schema.hasColumn("student_profiles", "father_name");
+    if (!hasFather) {
+      await db.schema.table("student_profiles", (table) => {
+        table.string("father_name").nullable();
+        table.string("mother_name").nullable();
+        table.string("father_occupation").nullable();
+        table.string("mother_occupation").nullable();
+        table.string("student_aadhaar").nullable();
+        table.string("admission_type").defaultTo("FRESHER"); // FRESHER, TRANSFER
+        table.string("previous_school").nullable();
+        table.string("previous_board").nullable();
+        table.string("previous_class").nullable();
+        table.string("previous_tc_number").nullable();
+        table.date("tc_issue_date").nullable();
+        table.text("documents_json").defaultTo("[]");
+      });
+    }
+  }
+
+  // Ensure document upload columns in drivers
+  if (await db.schema.hasTable("drivers")) {
+    const hasLicenseDoc = await db.schema.hasColumn("drivers", "license_document_url");
+    if (!hasLicenseDoc) {
+      await db.schema.table("drivers", (table) => {
+        table.string("license_document_url").nullable();
+        table.string("police_cert_url").nullable();
+        table.string("medical_cert_url").nullable();
+        table.string("badge_document_url").nullable();
+      });
+    }
+  }
+
+  // Ensure document upload columns in vehicles
+  if (await db.schema.hasTable("vehicles")) {
+    const hasRcDoc = await db.schema.hasColumn("vehicles", "rc_document_url");
+    if (!hasRcDoc) {
+      await db.schema.table("vehicles", (table) => {
+        table.string("rc_document_url").nullable();
+        table.string("insurance_document_url").nullable();
+        table.string("fitness_document_url").nullable();
+        table.string("puc_document_url").nullable();
+        table.string("permit_document_url").nullable();
+      });
+    }
+  }
 }
+
+
+

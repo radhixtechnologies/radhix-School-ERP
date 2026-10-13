@@ -1,4 +1,4 @@
-﻿import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "./connection";
 import { createTables } from "./schema";
@@ -9,9 +9,14 @@ export async function runSeed(): Promise<void> {
 
   const existingSuperAdmin = await db("users").where({ username: "superadmin@radhix.com" }).first();
   if (existingSuperAdmin) {
-    console.log("Seed data already present. Skipping...");
+    console.log("Seed data already present. Checking drivers, vehicles, and counsellor tables...");
+    await seedDriversIfEmpty();
+    await seedVehiclesIfEmpty();
+    await seedCounsellorIfEmpty();
     return;
+
   }
+
 
   console.log("Seeding fresh demo data for Radhix Multi-Vendor School ERP SaaS Platform...");
 
@@ -529,5 +534,363 @@ export async function runSeed(): Promise<void> {
     },
   ]);
 
+  // Seed Drivers & Vehicles
+  await seedDriversIfEmpty(school1Id);
+  await seedVehiclesIfEmpty(school1Id);
+
   console.log("Seeding finished successfully!");
 }
+
+
+export async function seedDriversIfEmpty(instId?: string): Promise<void> {
+  const count = await db("drivers").count("id as count").first();
+  if (Number(count?.count || 0) > 0) return;
+
+  const firstInst = await db("institutes").first();
+  if (!firstInst) {
+    console.log("No institute found to attach drivers. Skipping...");
+    return;
+  }
+  const targetInstituteId = instId || firstInst.id;
+  console.log(`Seeding verified school drivers registry for institute: ${targetInstituteId}...`);
+
+
+  await db("drivers").insert([
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      name: "Mukesh Kumar",
+      phone: "+91 98712 34567",
+      alternate_phone: "+91 98110 99881",
+      dob: "1984-05-12",
+      blood_group: "B+ve",
+      address: "H-42, Sector 15, Rohini, New Delhi - 110085",
+      aadhaar_number: "4829-1920-5512",
+      license_number: "DL-14-2018-HMV-8821",
+      license_type: "HMV_COMMERCIAL",
+      license_expiry: "2029-12-24",
+      badge_number: "PSV-DEL-77821",
+      experience_years: 9,
+      assigned_bus: "DL-1PB-4521 (Bus #12)",
+      route: "Rohini - Pitampura - Vasant Vihar",
+      police_verification: "VERIFIED",
+      police_station: "North Rohini Police Station",
+      police_report_date: "2026-01-14",
+      medical_fitness: "FIT",
+      fitness_certificate_no: "CMO-ND-2026-9081",
+      fitness_doctor: "Dr. A. K. Verma (CMO)",
+      status: "ACTIVE_DUTY",
+      joining_date: "2021-04-01",
+      notes: "Clean driving record. Zero traffic violations or rash driving reports.",
+    },
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      name: "Rajender Pal",
+      phone: "+91 98123 45678",
+      alternate_phone: "+91 98120 77665",
+      dob: "1980-11-20",
+      blood_group: "O+ve",
+      address: "Pocket 2, DDA Flats, Dwarka Sector 6, New Delhi - 110075",
+      aadhaar_number: "6124-7781-3342",
+      license_number: "DL-14-2016-HMV-3310",
+      license_type: "HMV_COMMERCIAL",
+      license_expiry: "2028-10-15",
+      badge_number: "PSV-DEL-44109",
+      experience_years: 12,
+      assigned_bus: "DL-1PB-2849 (Bus #07)",
+      route: "Dwarka Sector 6 - Janakpuri - Campus",
+      police_verification: "VERIFIED",
+      police_station: "Dwarka South Police Station",
+      police_report_date: "2026-02-02",
+      medical_fitness: "FIT",
+      fitness_certificate_no: "CMO-SW-2026-3314",
+      fitness_doctor: "Dr. P. S. Chauhan",
+      status: "ACTIVE_DUTY",
+      joining_date: "2019-07-15",
+      notes: "Senior driver with excellent defensive driving skills. First-aid certified.",
+    },
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      name: "Surendra Singh",
+      phone: "+91 98450 11223",
+      alternate_phone: "+91 98450 99882",
+      dob: "1988-08-04",
+      blood_group: "A+ve",
+      address: "C-18, Kotla Mubarakpur, South Extension, New Delhi - 110003",
+      aadhaar_number: "8821-3401-9902",
+      license_number: "DL-14-2020-HMV-5541",
+      license_type: "HMV_COMMERCIAL",
+      license_expiry: "2030-05-30",
+      badge_number: "PSV-DEL-90123",
+      experience_years: 7,
+      assigned_bus: "DL-1PB-9912 (Bus #04)",
+      route: "South Extension - Lajpat Nagar - Campus",
+      police_verification: "VERIFIED",
+      police_station: "Defence Colony Police Station",
+      police_report_date: "2026-03-10",
+      medical_fitness: "FIT",
+      fitness_certificate_no: "CMO-SE-2026-8821",
+      fitness_doctor: "Dr. Meenakshi Sundaram",
+      status: "STANDBY",
+      joining_date: "2022-09-01",
+      notes: "Relief and standby bus driver. Certified in fire-safety extinguisher handling.",
+    },
+  ]);
+  console.log("Seeded 3 verified drivers successfully.");
+}
+
+
+export async function seedVehiclesIfEmpty(instId?: string): Promise<void> {
+  const count = await db("vehicles").count("id as count").first();
+  if (Number(count?.count || 0) > 0) return;
+
+  const firstInst = await db("institutes").first();
+  if (!firstInst) return;
+  const targetInstituteId = instId || firstInst.id;
+
+  console.log(`Seeding verified school fleet vehicles for institute: ${targetInstituteId}...`);
+
+  await db("vehicles").insert([
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      vehicle_number: "DL-1PB-4521",
+      vehicle_model: "Tata Marcopolo Starbus Ultra (42-Seater)",
+      vehicle_type: "BUS",
+      seating_capacity: 42,
+      fuel_type: "DIESEL",
+      chassis_number: "MAT4521098DEL88192",
+      engine_number: "ENG497TC551029",
+      rc_number: "DL-1PB-4521",
+      rc_expiry: "2034-03-20",
+      fitness_cert_no: "RTO-DL-FIT-9921",
+      fitness_expiry: "2027-04-15",
+      insurance_policy_no: "HDFC-COMM-8829102",
+      insurance_company: "HDFC ERGO General Insurance",
+      insurance_expiry: "2027-05-10",
+      puc_cert_no: "PUC-DL-2026-4412",
+      puc_expiry: "2026-11-20",
+      permit_number: "DL-STAGE-CARRIAGE-8812",
+      permit_expiry: "2029-08-14",
+      speed_governor_fitted: true,
+      speed_limit_kmh: 40,
+      gps_device_imei: "864902048819201",
+      cctv_installed: true,
+      cctv_camera_count: 4,
+      fire_extinguisher: true,
+      emergency_exit: true,
+      assigned_driver_name: "Mukesh Kumar",
+      assigned_route_name: "Route #12 (Rohini - Pitampura - Vasant Vihar)",
+      status: "ACTIVE",
+      notes: "School safety certified. Equipped with child-check alarm and first aid kit.",
+    },
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      vehicle_number: "DL-1PB-2849",
+      vehicle_model: "Ashok Leyland Sunshine (38-Seater)",
+      vehicle_type: "BUS",
+      seating_capacity: 38,
+      fuel_type: "CNG",
+      chassis_number: "MB12849DEL7719002",
+      engine_number: "HINO-CNG-882910",
+      rc_number: "DL-1PB-2849",
+      rc_expiry: "2033-09-12",
+      fitness_cert_no: "RTO-DL-FIT-4412",
+      fitness_expiry: "2027-02-18",
+      insurance_policy_no: "ICICI-LOMB-7729101",
+      insurance_company: "ICICI Lombard",
+      insurance_expiry: "2027-03-15",
+      puc_cert_no: "PUC-DL-2026-8819",
+      puc_expiry: "2026-12-05",
+      permit_number: "DL-STAGE-CARRIAGE-3310",
+      permit_expiry: "2028-11-20",
+      speed_governor_fitted: true,
+      speed_limit_kmh: 40,
+      gps_device_imei: "864902049912084",
+      cctv_installed: true,
+      cctv_camera_count: 4,
+      fire_extinguisher: true,
+      emergency_exit: true,
+      assigned_driver_name: "Rajender Pal",
+      assigned_route_name: "Route #07 (Dwarka Sector 6 - Janakpuri - Campus)",
+      status: "ACTIVE",
+      notes: "Anti-skid flooring, low step height for junior students.",
+    },
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      vehicle_number: "DL-1PB-9912",
+      vehicle_model: "Eicher Skyline Pro 3009 (34-Seater)",
+      vehicle_type: "BUS",
+      seating_capacity: 34,
+      fuel_type: "DIESEL",
+      chassis_number: "MC29912DEL3381920",
+      engine_number: "E483-TCIC-902194",
+      rc_number: "DL-1PB-9912",
+      rc_expiry: "2035-01-10",
+      fitness_cert_no: "RTO-DL-FIT-2201",
+      fitness_expiry: "2027-06-30",
+      insurance_policy_no: "TATA-AIG-9910291",
+      insurance_company: "TATA AIG General Insurance",
+      insurance_expiry: "2027-07-22",
+      puc_cert_no: "PUC-DL-2026-7721",
+      puc_expiry: "2026-10-28",
+      permit_number: "DL-STAGE-CARRIAGE-5541",
+      permit_expiry: "2030-01-15",
+      speed_governor_fitted: true,
+      speed_limit_kmh: 40,
+      gps_device_imei: "864902043301928",
+      cctv_installed: true,
+      cctv_camera_count: 2,
+      fire_extinguisher: true,
+      emergency_exit: true,
+      assigned_driver_name: "Surendra Singh",
+      assigned_route_name: "Route #04 (South Extension - Lajpat Nagar - Campus)",
+      status: "ACTIVE",
+      notes: "Full air-conditioned bus. GPS & panic buttons operational.",
+    },
+    {
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      vehicle_number: "DL-1VB-3319",
+      vehicle_model: "Force Traveller 3700 Super (22-Seater)",
+      vehicle_type: "MINI_BUS",
+      seating_capacity: 22,
+      fuel_type: "CNG",
+      chassis_number: "FT3319DEL4410912",
+      engine_number: "FM26CR-881920",
+      rc_number: "DL-1VB-3319",
+      rc_expiry: "2032-11-04",
+      fitness_cert_no: "RTO-DL-FIT-1109",
+      fitness_expiry: "2027-01-12",
+      insurance_policy_no: "BAJAJ-ALLZ-4410928",
+      insurance_company: "Bajaj Allianz",
+      insurance_expiry: "2027-02-28",
+      puc_cert_no: "PUC-DL-2026-3391",
+      puc_expiry: "2026-11-15",
+      permit_number: "DL-SPECIAL-PERMIT-4412",
+      permit_expiry: "2029-05-18",
+      speed_governor_fitted: true,
+      speed_limit_kmh: 40,
+      gps_device_imei: "864902047712301",
+      cctv_installed: true,
+      cctv_camera_count: 2,
+      fire_extinguisher: true,
+      emergency_exit: true,
+      assigned_driver_name: "Relief Driver Pool",
+      assigned_route_name: "Mayur Vihar - Preet Vihar (Special Route)",
+      status: "STANDBY",
+      notes: "Used for emergency breakdown support and teacher tours.",
+    },
+  ]);
+  console.log("Seeded 4 verified school fleet vehicles successfully.");
+}
+
+async function seedCounsellorIfEmpty(): Promise<void> {
+  const dpa = await db("institutes").where({ code: "DPA101" }).first();
+  const targetInstituteId = dpa ? dpa.id : (await db("institutes").first())?.id;
+  if (!targetInstituteId) return;
+
+  // 1. Seed Counsellor User
+  const existingCounsellor = await db("users").where({ username: "counsellor@radhix.com" }).first();
+  if (!existingCounsellor) {
+    await db("users").insert({
+      id: uuidv4(),
+      institute_id: targetInstituteId,
+      username: "counsellor@radhix.com",
+      email: "counsellor@radhix.com",
+      phone: "9876501234",
+      password_hash: bcrypt.hashSync("Counsellor@123", 10),
+      role: "ADMISSION_COUNSELLOR",
+      is_active: true,
+      force_password_change: false,
+    });
+    console.log("Seeded Admission Counsellor user: counsellor@radhix.com / Counsellor@123");
+  }
+
+  // 2. Seed initial inquiries
+  if (await db.schema.hasTable("admission_inquiries")) {
+    const existingInquiries = await db("admission_inquiries").where({ institute_id: targetInstituteId }).count("id as count").first();
+    if (!existingInquiries || Number(existingInquiries.count) === 0) {
+      await db("admission_inquiries").insert([
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_name: "Reyansh Gupta",
+          parent_name: "Amit Gupta",
+          phone: "+91 98112 34567",
+          email: "amit.gupta@gmail.com",
+          class_applying: "Class 1",
+          source: "WALK_IN",
+          status: "CAMPUS_VISIT",
+          counsellor_name: "Priya Sharma (Senior Counsellor)",
+          follow_up_date: "2026-10-15",
+          notes: "Parents visited campus, interested in CBSE curriculum, digital smart classes and school bus facility.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_name: "Ananya Saxena",
+          parent_name: "Deepak Saxena",
+          phone: "+91 98711 22334",
+          email: "deepak.saxena@outlook.com",
+          class_applying: "Class 6",
+          source: "WEBSITE",
+          status: "NEW_INQUIRY",
+          counsellor_name: "Priya Sharma (Senior Counsellor)",
+          follow_up_date: "2026-10-14",
+          notes: "Inquiry submitted through website for mid-term transfer. Requires bus route information.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_name: "Kabir Malhotra",
+          parent_name: "Sunil Malhotra",
+          phone: "+91 98230 44556",
+          email: "sunil.m@gmail.com",
+          class_applying: "Pre-Primary (KG)",
+          source: "PHONE",
+          status: "FORM_SUBMITTED",
+          counsellor_name: "Priya Sharma (Senior Counsellor)",
+          follow_up_date: "2026-10-16",
+          notes: "Fresher admission. Submitted birth certificate and Aadhaar. Fee discussion pending.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_name: "Myra Kapoor",
+          parent_name: "Vikram Kapoor",
+          phone: "+91 98450 66778",
+          email: "vikram.kapoor@yahoo.com",
+          class_applying: "Class 9",
+          source: "REFERRAL",
+          status: "ENROLLED",
+          counsellor_name: "Priya Sharma (Senior Counsellor)",
+          follow_up_date: "2026-10-10",
+          notes: "Admission confirmed with TC from DPS Ghaziabad. Enrolled into Class 9-A.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_name: "Advait Singhal",
+          parent_name: "Rajesh Singhal",
+          phone: "+91 98101 88990",
+          email: "rajesh.singhal@gmail.com",
+          class_applying: "Class 10",
+          source: "WALK_IN",
+          status: "CAMPUS_VISIT",
+          counsellor_name: "Priya Sharma (Senior Counsellor)",
+          follow_up_date: "2026-10-18",
+          notes: "Science stream query with laboratory tour completed.",
+        },
+      ]);
+      console.log("Seeded 5 initial admission inquiries for Admission Counsellor.");
+    }
+  }
+}
+
+
+

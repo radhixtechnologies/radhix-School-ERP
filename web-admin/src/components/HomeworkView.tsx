@@ -156,7 +156,7 @@ export const HomeworkView: React.FC<Props> = ({ token, institute }) => {
       });
       const result = await res.json();
       if (result.success) {
-        showNotification("नया गृहकार्य जारी किया गया! (Homework assigned successfully to Class!)");
+        showNotification("Curriculum Assignment published and dispatched to student class portal!");
         setShowCreateModal(false);
         setNewTitle("");
         setNewDescription("");
@@ -333,7 +333,7 @@ export const HomeworkView: React.FC<Props> = ({ token, institute }) => {
               borderRadius: "12px",
               border: "1px solid #E0E7FF"
             }}>
-              गृहकार्य प्रबंधन (Class Dairy)
+              Homework & Curriculum Registry
             </span>
           </div>
           <p style={{ margin: 0, color: "#64748B", fontSize: "13px" }}>
@@ -629,7 +629,7 @@ export const HomeworkView: React.FC<Props> = ({ token, institute }) => {
                     }}
                   >
                     <Eye size={16} color="#4F46E5" />
-                    <span>View Student Submissions & Grade (कॉपी जांचें)</span>
+                    <span>Review Student Submissions & Assessment</span>
                   </button>
                 </div>
               </div>

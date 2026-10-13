@@ -1,5 +1,18 @@
-﻿import { useState, useEffect } from "react";
-import { Plus, Printer, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Plus,
+  Printer,
+  CheckCircle2,
+  AlertCircle,
+  CreditCard,
+  TrendingUp,
+  AlertTriangle,
+  Wallet,
+  Receipt,
+  IndianRupee,
+  ShieldCheck,
+  Check
+} from "lucide-react";
 
 interface Props {
   institute: any;
@@ -125,32 +138,167 @@ export const FeesView = ({ institute, token }: Props) => {
     } catch {}
   };
 
+  // Financial KPI Calculations
+  const totalBilled = allocations.reduce((sum, a) => sum + Number(a.net_amount || 0), 0);
+  const totalCollected = allocations.reduce((sum, a) => sum + Number(a.paid_amount || 0), 0);
+  const totalPending = Math.max(0, totalBilled - totalCollected);
+  const collectionRate = totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
+  const defaultersCount = allocations.filter((a) => Number(a.paid_amount || 0) < Number(a.net_amount || 0)).length;
+  const clearedCount = allocations.filter((a) => Number(a.paid_amount || 0) >= Number(a.net_amount || 0) && Number(a.net_amount || 0) > 0).length;
+
   return (
     <div>
+      {/* Top Banner (Preskool Indigo/Blue theme) */}
+      <div style={{
+        background: "linear-gradient(135deg, #3D5EE1 0%, #1E3A8A 100%)",
+        borderRadius: "18px",
+        padding: "24px 28px",
+        color: "#fff",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "20px",
+        boxShadow: "0 10px 25px -5px rgba(61, 94, 225, 0.3)"
+      }}>
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.2)", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: 800, marginBottom: "8px" }}>
+            <Wallet size={14} color="#93C5FD" /> Fee Counter & Accounts Registry
+          </div>
+          <h1 style={{ fontSize: "22px", fontWeight: 900, margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
+            Fee Management & Financial Accounts Overview
+          </h1>
+          <p style={{ margin: 0, opacity: 0.9, fontSize: "13px", maxWidth: "680px" }}>
+            Institutional fee collection, accounts ledger, 3-ply formal receipts generation, and real-time dues tracking.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setActiveSubTab("counter")}
+          style={{
+            background: "#FFFFFF",
+            color: "#3D5EE1",
+            border: "none",
+            padding: "12px 22px",
+            borderRadius: "12px",
+            fontWeight: 900,
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            boxShadow: "0 6px 20px rgba(0,0,0,0.15)"
+          }}
+        >
+          <Receipt size={18} />
+          <span>Fee Collection Counter</span>
+        </button>
+      </div>
+
+      {/* DASHBOARD OVERVIEW: 4 FINANCIAL KPI CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "20px" }}>
+        {/* Card 1: Total Assessed Revenue */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Total Fee Assessed</div>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: "#0F172A", marginTop: "2px" }}>
+                ₹{totalBilled.toLocaleString("en-IN")}
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#EEF2FF", color: "#3D5EE1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <CreditCard size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>
+            {allocations.length} Active Student Fee Assessments
+          </div>
+        </div>
+
+        {/* Card 2: Total Collected */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Total Collected Revenue</div>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: "#16A34A", marginTop: "2px" }}>
+                ₹{totalCollected.toLocaleString("en-IN")}
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#DCFCE7", color: "#16A34A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <CheckCircle2 size={20} />
+            </div>
+          </div>
+          {/* Collection Bar */}
+          <div style={{ width: "100%", height: "6px", background: "#F1F5F9", borderRadius: "10px", overflow: "hidden", marginBottom: "6px" }}>
+            <div style={{ width: `${collectionRate}%`, height: "100%", background: "linear-gradient(90deg, #10B981, #059669)", borderRadius: "10px" }} />
+          </div>
+          <div style={{ fontSize: "11px", color: "#16A34A", fontWeight: 700 }}>
+            ✓ {collectionRate}% Fee Recovery Rate ({clearedCount} Paid in Full)
+          </div>
+        </div>
+
+        {/* Card 3: Pending Balance */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Total Outstanding Dues</div>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: totalPending > 0 ? "#DC2626" : "#16A34A", marginTop: "2px" }}>
+                ₹{totalPending.toLocaleString("en-IN")}
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#FEF2F2", color: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AlertTriangle size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: totalPending > 0 ? "#DC2626" : "#16A34A", fontWeight: 700 }}>
+            {defaultersCount > 0 ? `⚠️ ${defaultersCount} Students with Overdue Balance` : "✓ Zero Outstanding Dues"}
+          </div>
+        </div>
+
+        {/* Card 4: Fee Structures Master */}
+        <div style={{ background: "#FFFFFF", padding: "18px 20px", borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 2px 6px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B" }}>Active Fee Heads</div>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: "#3D5EE1", marginTop: "2px" }}>
+                {structures.length} Structures
+              </div>
+            </div>
+            <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#EEF2FF", color: "#3D5EE1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Wallet size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>
+            Tuition, Transport, Exam & Lab Heads
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <div>
-          <h2 style={{ fontSize: "20px", fontWeight: "800" }}>Fee Management & Online Counter</h2>
-          <p style={{ fontSize: "13px", color: "#64748b" }}>Fee heads, offline counter collection, 3-copy receipts & dues</p>
+          <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0 }}>Fee Operations & Counter</h2>
+          <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0 0" }}>Fee heads, offline counter collection, 3-copy receipts & dues</p>
         </div>
 
         {/* Sub-tab navigation */}
-        <div style={{ display: "flex", background: "#e2e8f0", padding: "4px", borderRadius: "10px", gap: "4px" }}>
+        <div style={{ display: "flex", background: "#F1F5F9", padding: "4px", borderRadius: "10px", gap: "4px", border: "1px solid #E2E8F0" }}>
           {[
-            { id: "counter", label: "Fee Counter" },
-            { id: "structures", label: "Fee Structures" },
-            { id: "reports", label: "Defaulters Report" },
+            { id: "counter", label: "Fee Collection Counter" },
+            { id: "structures", label: "Fee Structures Master" },
+            { id: "reports", label: "Outstanding Dues Register" },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveSubTab(t.id as any)}
               style={{
-                padding: "8px 14px",
+                padding: "8px 16px",
                 borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: "700",
-                background: activeSubTab === t.id ? "#fff" : "transparent",
-                color: activeSubTab === t.id ? "#0f172a" : "#64748b",
-                boxShadow: activeSubTab === t.id ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                background: activeSubTab === t.id ? "#3D5EE1" : "transparent",
+                color: activeSubTab === t.id ? "#FFFFFF" : "#64748b",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: activeSubTab === t.id ? "0 2px 8px rgba(61,94,225,0.3)" : "none",
               }}
             >
               {t.label}

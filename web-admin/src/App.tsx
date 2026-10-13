@@ -13,6 +13,7 @@ import { ExamsView } from "./components/ExamsView";
 import { TransportView } from "./components/TransportView";
 import { SuperAdminView } from "./components/SuperAdminView";
 import { TicketsView } from "./components/TicketsView";
+import { AdmissionCounsellorView } from "./components/AdmissionCounsellorView";
 import {
   Calendar,
   Bell,
@@ -23,27 +24,11 @@ import {
   Lock,
   LogOut,
   ChevronRight,
-  Palette
+  Search,
+  Moon,
+  Sun,
+  MessageSquare
 } from "lucide-react";
-
-
-export interface ThemeConfig {
-  id: string;
-  name: string;
-  primary: string;
-  accent: string;
-  gradient: string;
-  lightBg: string;
-}
-
-export const THEME_PRESETS: ThemeConfig[] = [
-  { id: "royal_indigo", name: "Royal Indigo", primary: "#474A74", accent: "#312E81", gradient: "linear-gradient(135deg, #474A74 0%, #312E81 100%)", lightBg: "#EEF2FF" },
-  { id: "emerald_green", name: "Emerald Green", primary: "#059669", accent: "#047857", gradient: "linear-gradient(135deg, #059669 0%, #047857 100%)", lightBg: "#ECFDF5" },
-  { id: "royal_purple", name: "Royal Purple", primary: "#7C3AED", accent: "#6D28D9", gradient: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)", lightBg: "#F5F3FF" },
-  { id: "crimson_ruby", name: "Crimson Ruby", primary: "#E11D48", accent: "#BE123C", gradient: "linear-gradient(135deg, #E11D48 0%, #BE123C 100%)", lightBg: "#FFF1F2" },
-  { id: "sunset_amber", name: "Sunset Amber", primary: "#D97706", accent: "#B45309", gradient: "linear-gradient(135deg, #D97706 0%, #B45309 100%)", lightBg: "#FFFBEB" },
-  { id: "midnight_dark", name: "Midnight Dark", primary: "#1E293B", accent: "#0F172A", gradient: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)", lightBg: "#F1F5F9" },
-];
 
 type PortalType = "admin" | "super-admin";
 
@@ -77,17 +62,23 @@ export default function App() {
   const [institute, setInstitute] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState<boolean>(!!token);
-  // Theme state with local persistence
-  const [currentTheme, setCurrentTheme] = useState<string>(localStorage.getItem("ia_theme") || "royal_indigo");
-  const [showThemeDropdown, setShowThemeDropdown] = useState(false);
-  const activeTheme = THEME_PRESETS.find((t) => t.id === currentTheme) || THEME_PRESETS[0];
+
+  // Pure 2-Theme Mode (Light & Dark Mode matching Preskool)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("theme_mode") === "dark";
+  });
 
   useEffect(() => {
-    localStorage.setItem("ia_theme", currentTheme);
-    document.documentElement.style.setProperty("--primary-color", activeTheme.primary);
-    document.documentElement.style.setProperty("--primary-accent", activeTheme.accent);
-    document.documentElement.style.setProperty("--primary-gradient", activeTheme.gradient);
-  }, [currentTheme]);
+    if (isDarkMode) {
+      document.body.classList.add("dark-mode");
+      localStorage.setItem("theme_mode", "dark");
+    } else {
+      document.body.classList.remove("dark-mode");
+      localStorage.setItem("theme_mode", "light");
+    }
+  }, [isDarkMode]);
+
+
 
 
   // Synchronize browser history and path
@@ -442,52 +433,138 @@ export default function App() {
               </button>
             )}
 
+            {/* Preskool Global Search Bar */}
             <div style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "6px 14px",
-              background: "#F1F5F9",
-              borderRadius: "20px",
-              fontSize: "12px",
-              color: "#475569",
-              fontWeight: "600"
+              background: isDarkMode ? "#1E2535" : "#F4F6FB",
+              border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
+              borderRadius: "10px",
+              padding: "7px 14px",
+              width: "280px"
             }}>
-              <Calendar size={14} />
-              <span>Oct 2026</span>
+              <Search size={15} color={isDarkMode ? "#A0ABC0" : "#8F95B2"} />
+              <input
+                type="text"
+                placeholder="Search students, staff, invoices..."
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  outline: "none",
+                  fontSize: "13px",
+                  color: isDarkMode ? "#F3F4F8" : "#181C32",
+                  width: "100%"
+                }}
+              />
+              <span style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                padding: "2px 5px",
+                background: isDarkMode ? "#2B344A" : "#FFFFFF",
+                borderRadius: "4px",
+                color: isDarkMode ? "#94A3B8" : "#8F95B2",
+                border: `1px solid ${isDarkMode ? "#334155" : "#E2E8F0"}`
+              }}>
+                ⌘K
+              </span>
             </div>
 
+            {/* Academic Year Selector */}
             <div style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "#F1F5F9",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              color: "#64748B",
-              position: "relative",
-              cursor: "pointer"
+              gap: "6px",
+              padding: "7px 14px",
+              background: isDarkMode ? "#1E2535" : "#F4F6FB",
+              borderRadius: "10px",
+              fontSize: "12px",
+              fontWeight: 800,
+              color: isDarkMode ? "#A0ABC0" : "#5E6278",
+              border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`
             }}>
+              <Calendar size={14} color="#3D5EE1" />
+              <span>Academic Year : 2026 / 2027</span>
+            </div>
+
+            {/* Pure Light & Dark Mode Toggle (Preskool Moon/Sun Button) */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: isDarkMode ? "#1E2535" : "#F4F6FB",
+                border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isDarkMode ? "#FACC15" : "#5E6278",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {/* Messages / Helpdesk */}
+            <div
+              title="Helpdesk & Messages"
+              onClick={() => handleTabChange("tickets")}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: isDarkMode ? "#1E2535" : "#F4F6FB",
+                border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isDarkMode ? "#A0ABC0" : "#5E6278",
+                cursor: "pointer"
+              }}
+            >
+              <MessageSquare size={17} />
+            </div>
+
+            {/* Notifications Bell */}
+            <div
+              title="Notifications"
+              onClick={() => handleTabChange("notices")}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: isDarkMode ? "#1E2535" : "#F4F6FB",
+                border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isDarkMode ? "#A0ABC0" : "#5E6278",
+                position: "relative",
+                cursor: "pointer"
+              }}
+            >
               <Bell size={18} />
               <span style={{
                 position: "absolute",
                 top: "8px",
                 right: "8px",
-                width: "8px",
-                height: "8px",
+                width: "7px",
+                height: "7px",
                 borderRadius: "50%",
-                background: "#EF4444",
-                border: "2px solid #fff"
+                background: "#EF4444"
               }} />
             </div>
+
 
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{
                 width: "36px",
                 height: "36px",
                 borderRadius: "50%",
-                background: isSuperAdminPortal ? "#1E1B4B" : "#474A74",
+                background: isSuperAdminPortal ? "#1E1B4B" : "var(--primary-color, #474A74)",
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
@@ -508,6 +585,7 @@ export default function App() {
             </div>
           </div>
         </header>
+
 
         {/* Super Admin Inspection Mode Banner if Super Admin is on /admin */}
         {!isSuperAdminPortal && user.role === "SUPER_ADMIN" && (
@@ -566,18 +644,23 @@ export default function App() {
                   stats={stats}
                   institute={institute}
                   user={user}
+                  token={token}
                   onNavigateTab={handleTabChange}
                 />
               )}
               {activeTab === "academics" && <AcademicsView institute={institute} token={token} />}
               {activeTab === "homework" && <HomeworkView token={token} institute={institute} />}
               {activeTab === "exams" && <ExamsView />}
-              {activeTab === "admissions" && <AdmissionsView token={token} institute={institute} />}
+              {activeTab === "admissions" && <AdmissionsView token={token} institute={institute} onNavigateTab={handleTabChange} />}
               {activeTab === "staff" && <StaffView token={token} institute={institute} />}
               {activeTab === "attendance" && <AttendanceView token={token} institute={institute} />}
               {activeTab === "fees" && <FeesView token={token} institute={institute} />}
-              {activeTab === "transport" && <TransportView token={token} />}
+              {activeTab === "transport" && <TransportView token={token} defaultTab="tracking" />}
+              {activeTab === "drivers" && <TransportView token={token} defaultTab="drivers" />}
+              {activeTab === "vehicles" && <TransportView token={token} defaultTab="vehicles" />}
               {activeTab === "notices" && <NoticesView token={token || ""} />}
+              {activeTab === "counsellor" && <AdmissionCounsellorView token={token} institute={institute} />}
+
               {activeTab === "tickets" && <TicketsView token={token} user={user} institute={institute} />}
               {activeTab === "super-tickets" && <SuperAdminView token={token || ""} onSwitchToSchool={handleSwitchToSchoolFromSuperAdmin} activeTab="super-tickets" setActiveTab={handleTabChange} onNavigateToSchoolAdmin={() => navigateTo("admin", "dashboard")} />}
             </>

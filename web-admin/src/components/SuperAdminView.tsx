@@ -24,12 +24,14 @@ import {
   FileText,
   Award,
   ShieldAlert,
-  LifeBuoy
+  LifeBuoy,
+  Copy,
+  Check
 } from "lucide-react";
 
 interface Props {
   token: string;
-  onSwitchToSchool: (schoolId: string, schoolName: string) => void;
+  onSwitchToSchool: (schoolId: string, schoolName: string, fullSchool?: any) => void;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   onNavigateToSchoolAdmin?: () => void;
@@ -47,6 +49,8 @@ export const SuperAdminView: React.FC<Props> = ({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [createdSchoolSuccess, setCreatedSchoolSuccess] = useState<any | null>(null);
+  const [copiedSuccessField, setCopiedSuccessField] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   // School Deep Dive State
@@ -290,6 +294,7 @@ export const SuperAdminView: React.FC<Props> = ({
       if (data.success) {
         showToastMsg(`School '${newSchool.name}' registered successfully!`);
         setShowAddModal(false);
+        setCreatedSchoolSuccess(data.data);
         loadData();
       } else {
         showToastMsg(data.message || "Failed to create school");
@@ -725,7 +730,7 @@ export const SuperAdminView: React.FC<Props> = ({
                           </button>
 
                           <button
-                            onClick={() => onSwitchToSchool(s.id, s.name)}
+                            onClick={() => onSwitchToSchool(s.id, s.name, s)}
                             title="Launch School Admin ERP"
                             style={{
                               background: "#EEF2FF",
@@ -1716,6 +1721,256 @@ export const SuperAdminView: React.FC<Props> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATED SCHOOL SUCCESS HANDOVER MODAL */}
+      {createdSchoolSuccess && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10001,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: "24px",
+              width: "100%",
+              maxWidth: "600px",
+              padding: "36px",
+              boxShadow: "0 25px 60px -15px rgba(0,0,0,0.3)",
+              border: "1px solid #E2E8F0",
+              textAlign: "left",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px" }}>
+              <div
+                style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "16px",
+                  background: "#ECFDF5",
+                  border: "1px solid #A7F3D0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#059669",
+                }}
+              >
+                <CheckCircle2 size={30} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: "22px", fontWeight: 900, margin: 0, color: "#0F172A" }}>
+                  School Provisioned Successfully!
+                </h2>
+                <p style={{ fontSize: "13px", color: "#64748B", margin: "4px 0 0 0" }}>
+                  New database tenant, academic years, classes, and master credentials are ready.
+                </p>
+              </div>
+            </div>
+
+            {/* School Info Badge */}
+            <div
+              style={{
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                borderRadius: "14px",
+                padding: "16px",
+                marginBottom: "20px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F172A" }}>
+                  {createdSchoolSuccess.name}
+                </div>
+                <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px" }}>
+                  Tenant Code: <strong style={{ color: "#4F46E5" }}>{createdSchoolSuccess.code}</strong> • Type: {createdSchoolSuccess.instituteType || "SCHOOL"}
+                </div>
+              </div>
+              <span
+                style={{
+                  background: "#DCFCE7",
+                  color: "#15803D",
+                  padding: "4px 10px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                }}
+              >
+                ACTIVE TENANT
+              </span>
+            </div>
+
+            {/* Dedicated Access URL */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 800, color: "#334155", marginBottom: "6px" }}>
+                Dedicated School Admin URL (Direct Tenant Login):
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "#EEF2FF",
+                  border: "1px solid #C7D2FE",
+                  borderRadius: "10px",
+                  padding: "10px 14px",
+                  gap: "10px",
+                }}
+              >
+                <input
+                  readOnly
+                  value={createdSchoolSuccess.dedicatedUrl || `http://localhost:5174/admin?tenant=${createdSchoolSuccess.code}`}
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: "#3730A3",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = createdSchoolSuccess.dedicatedUrl || `http://localhost:5174/admin?tenant=${createdSchoolSuccess.code}`;
+                    navigator.clipboard.writeText(url);
+                    setCopiedSuccessField("url");
+                    setTimeout(() => setCopiedSuccessField(null), 2000);
+                  }}
+                  style={{
+                    background: copiedSuccessField === "url" ? "#059669" : "#4F46E5",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {copiedSuccessField === "url" ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedSuccessField === "url" ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            {/* Credentials Card */}
+            <div
+              style={{
+                background: "#0F172A",
+                color: "#FFFFFF",
+                borderRadius: "14px",
+                padding: "18px",
+                marginBottom: "24px",
+              }}
+            >
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "#94A3B8", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "12px" }}>
+                Administrator Login Credentials
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div>
+                  <span style={{ fontSize: "11px", color: "#94A3B8" }}>Master Username:</span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
+                    <code style={{ fontSize: "13px", color: "#38BDF8", fontWeight: 700 }}>
+                      {createdSchoolSuccess.adminCredentials?.username || createdSchoolSuccess.adminCredentials?.email}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = createdSchoolSuccess.adminCredentials?.username || createdSchoolSuccess.adminCredentials?.email || "";
+                        navigator.clipboard.writeText(val);
+                        setCopiedSuccessField("user");
+                        setTimeout(() => setCopiedSuccessField(null), 2000);
+                      }}
+                      style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px" }}
+                      title="Copy Username"
+                    >
+                      {copiedSuccessField === "user" ? <Check size={14} color="#34D399" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: "11px", color: "#94A3B8" }}>Default Password:</span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
+                    <code style={{ fontSize: "13px", color: "#FBBF24", fontWeight: 700 }}>
+                      {createdSchoolSuccess.adminCredentials?.password || "School@123"}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = createdSchoolSuccess.adminCredentials?.password || "School@123";
+                        navigator.clipboard.writeText(val);
+                        setCopiedSuccessField("pass");
+                        setTimeout(() => setCopiedSuccessField(null), 2000);
+                      }}
+                      style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px" }}
+                      title="Copy Password"
+                    >
+                      {copiedSuccessField === "pass" ? <Check size={14} color="#34D399" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setCreatedSchoolSuccess(null)}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  border: "1px solid #CBD5E1",
+                  background: "#F8FAFC",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                Close & Return
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = createdSchoolSuccess.dedicatedUrl || `http://localhost:5174/admin?tenant=${createdSchoolSuccess.code}`;
+                  window.open(url, "_blank");
+                }}
+                style={{
+                  padding: "10px 22px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#4F46E5",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <ExternalLink size={15} />
+                Open Dedicated School Admin
+              </button>
+            </div>
           </div>
         </div>
       )}

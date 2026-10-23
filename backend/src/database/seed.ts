@@ -9,12 +9,17 @@ export async function runSeed(): Promise<void> {
 
   const existingSuperAdmin = await db("users").where({ username: "superadmin@radhix.com" }).first();
   if (existingSuperAdmin) {
-    console.log("Seed data already present. Checking drivers, vehicles, and counsellor tables...");
+    console.log("Seed data already present. Checking drivers, vehicles, counsellor, leaves, finance, and online classes...");
     await seedDriversIfEmpty();
     await seedVehiclesIfEmpty();
     await seedCounsellorIfEmpty();
+    await seedLeavesAndSubstitutionIfEmpty();
+    await seedSalariesIfEmpty();
+    await seedTransportExpensesIfEmpty();
+    await seedOnlineClassesIfEmpty();
+    await seedFeesIfEmpty();
+    await seedCleanlinessIfEmpty();
     return;
-
   }
 
 
@@ -890,6 +895,743 @@ async function seedCounsellorIfEmpty(): Promise<void> {
       console.log("Seeded 5 initial admission inquiries for Admission Counsellor.");
     }
   }
+}
+
+async function ensureTeachersExist(instituteId: string): Promise<any[]> {
+  const demoTeachers = [
+    {
+      email: "teacher@school.com",
+      first_name: "Sunita",
+      last_name: "Sharma",
+      emp_code: "TCH-101",
+      designation: "Senior Mathematics PGT",
+      department: "Academics",
+    },
+    {
+      email: "ramesh.verma@school.com",
+      first_name: "Ramesh",
+      last_name: "Verma",
+      emp_code: "TCH-102",
+      designation: "Physics & Science HOD",
+      department: "Science",
+    },
+    {
+      email: "neha.gupta@school.com",
+      first_name: "Neha",
+      last_name: "Gupta",
+      emp_code: "TCH-103",
+      designation: "English TGT Faculty",
+      department: "Languages",
+    },
+  ];
+
+  for (const dt of demoTeachers) {
+    const existing = await db("staff_profiles")
+      .where({ institute_id: instituteId, first_name: dt.first_name, last_name: dt.last_name })
+      .first();
+
+    if (!existing) {
+      const user = await db("users").where({ username: dt.email }).first();
+      const userId = user ? user.id : uuidv4();
+      if (!user) {
+        await db("users").insert({
+          id: userId,
+          institute_id: instituteId,
+          username: dt.email,
+          email: dt.email,
+          phone: "9811223344",
+          password_hash: bcrypt.hashSync("Teacher@123", 10),
+          role: "TEACHER",
+          is_active: true,
+        });
+      }
+      await db("staff_profiles").insert({
+        id: uuidv4(),
+        institute_id: instituteId,
+        user_id: userId,
+        employee_code: dt.emp_code,
+        first_name: dt.first_name,
+        last_name: dt.last_name,
+        designation: dt.designation,
+        department: dt.department,
+        phone: "9811223344",
+        joining_date: "2024-07-01",
+        qualification: "M.Sc., B.Ed.",
+      });
+    }
+  }
+
+  return await db("staff_profiles").where({ institute_id: instituteId });
+}
+
+async function seedLeavesAndSubstitutionIfEmpty(): Promise<void> {
+  const school = await db("institutes").where({ code: "DPA101" }).first();
+  const targetInstituteId = school ? school.id : "1";
+
+  if (await db.schema.hasTable("teacher_leaves")) {
+    const existing = await db("teacher_leaves").where({ institute_id: targetInstituteId }).count("id as count").first();
+    if (!existing || Number(existing.count) === 0) {
+      const staffList = await ensureTeachersExist(targetInstituteId);
+      const teacher1 = staffList[0];
+      const teacher2 = staffList[1] || staffList[0];
+      const teacher3 = staffList[2] || staffList[0];
+
+      await db("teacher_leaves").insert([
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          staff_id: teacher1.id,
+          leave_type: "MEDICAL",
+          start_date: "2026-10-20",
+          end_date: "2026-10-22",
+          reason: "High viral fever and physician recommended complete bed rest.",
+          status: "APPROVED",
+          substitute_staff_id: teacher2.id,
+          substitute_name: `${teacher2.first_name} ${teacher2.last_name || ""}`.trim(),
+          substitution_notes: "Assigned to cover Class 10-A Mathematics Period 2 & Period 4, and Class 9-B Geometry.",
+          admin_remarks: "Approved by Principal. Proxy duty assigned and substitute teacher notified.",
+          approved_at: new Date().toISOString(),
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          staff_id: teacher3.id,
+          leave_type: "CASUAL",
+          start_date: "2026-10-24",
+          end_date: "2026-10-25",
+          reason: "Attending sister's wedding ceremony out of town.",
+          status: "PENDING",
+          substitute_staff_id: null,
+          substitute_name: null,
+          substitution_notes: null,
+          admin_remarks: null,
+          approved_at: null,
+        },
+      ]);
+      console.log("Seeded initial teacher leaves and substitution proxy records.");
+    }
+  }
+}
+
+async function seedSalariesIfEmpty(): Promise<void> {
+  const school = await db("institutes").where({ code: "DPA101" }).first();
+  const targetInstituteId = school ? school.id : "1";
+
+  if (await db.schema.hasTable("staff_salaries")) {
+    const existing = await db("staff_salaries").where({ institute_id: targetInstituteId }).count("id as count").first();
+    if (!existing || Number(existing.count) === 0) {
+      const staffList = await ensureTeachersExist(targetInstituteId);
+      const currentMonth = "October 2026";
+
+      const salaryRecords = [
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          staff_id: staffList[0].id,
+          staff_name: `${staffList[0].first_name} ${staffList[0].last_name || ""}`.trim(),
+          designation: staffList[0].designation || "Senior Mathematics PGT",
+          department: staffList[0].department || "Academics",
+          month_year: currentMonth,
+          basic_salary: 48000,
+          allowance: 6000,
+          deduction: 2500,
+          net_salary: 51500,
+          payment_status: "PAID",
+          payment_mode: "BANK_TRANSFER",
+          payment_date: "2026-10-05",
+          transaction_ref: "NEFT-HDFC-99120",
+          voucher_number: "PAY-2026-1001",
+          remarks: "Monthly salary credited via HDFC corporate net banking.",
+          disbursed_by: "Principal (Admin)",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          staff_id: staffList[1].id,
+          staff_name: `${staffList[1].first_name} ${staffList[1].last_name || ""}`.trim(),
+          designation: staffList[1].designation || "Physics & Science HOD",
+          department: staffList[1].department || "Science",
+          month_year: currentMonth,
+          basic_salary: 45000,
+          allowance: 5000,
+          deduction: 2200,
+          net_salary: 47800,
+          payment_status: "PAID",
+          payment_mode: "BANK_TRANSFER",
+          payment_date: "2026-10-05",
+          transaction_ref: "NEFT-SBI-44321",
+          voucher_number: "PAY-2026-1002",
+          remarks: "Salary credited successfully.",
+          disbursed_by: "Principal (Admin)",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          staff_id: staffList[2].id,
+          staff_name: `${staffList[2].first_name} ${staffList[2].last_name || ""}`.trim(),
+          designation: staffList[2].designation || "English TGT Faculty",
+          department: staffList[2].department || "Languages",
+          month_year: currentMonth,
+          basic_salary: 38000,
+          allowance: 4000,
+          deduction: 1800,
+          net_salary: 40200,
+          payment_status: "PENDING",
+          payment_mode: null,
+          payment_date: null,
+          transaction_ref: null,
+          voucher_number: null,
+          remarks: "Pending monthly disbursement approval.",
+          disbursed_by: null,
+        },
+      ];
+
+      await db("staff_salaries").insert(salaryRecords);
+      console.log("Seeded initial staff salary payroll records for October 2026.");
+    }
+  }
+}
+
+async function seedTransportExpensesIfEmpty(): Promise<void> {
+  const school = await db("institutes").where({ code: "DPA101" }).first();
+  const targetInstituteId = school ? school.id : "1";
+
+  if (await db.schema.hasTable("transport_expenses")) {
+    const existing = await db("transport_expenses").where({ institute_id: targetInstituteId }).count("id as count").first();
+    if (!existing || Number(existing.count) === 0) {
+      const currentMonth = "October 2026";
+
+      await db("transport_expenses").insert([
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          vehicle_number: "Bus #12 (DL 01 AB 4321)",
+          expense_type: "MONTHLY_CONTRACT",
+          month_year: currentMonth,
+          vendor_or_payee: "Rathore Travels & Fleet Agency (Contractor)",
+          amount: 38000,
+          payment_status: "PAID",
+          payment_mode: "BANK_TRANSFER",
+          payment_date: "2026-10-07",
+          transaction_ref: "NEFT-CORP-98124",
+          receipt_number: "TRP-2026-101",
+          notes: "Monthly contracted fleet payout for Bus #12 (45 Seater) covering Rohini to Pitampura corridor.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          vehicle_number: "Bus #07 (DL 01 CD 8765)",
+          expense_type: "MONTHLY_CONTRACT",
+          month_year: currentMonth,
+          vendor_or_payee: "Apex Fleet Roadways Pvt Ltd",
+          amount: 35000,
+          payment_status: "PAID",
+          payment_mode: "BANK_TRANSFER",
+          payment_date: "2026-10-07",
+          transaction_ref: "NEFT-CORP-98125",
+          receipt_number: "TRP-2026-102",
+          notes: "Monthly contract hire charges for Bus #07 South Delhi route.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          vehicle_number: "Mini Bus #03 (DL 02 EF 1234)",
+          expense_type: "FUEL",
+          month_year: currentMonth,
+          vendor_or_payee: "Indian Oil Petrol Pump Sector 14",
+          amount: 18500,
+          payment_status: "PAID",
+          payment_mode: "UPI",
+          payment_date: "2026-10-12",
+          transaction_ref: "UPI-PETROL-88192",
+          receipt_number: "TRP-2026-103",
+          notes: "Bulk CNG and diesel fleet card fuel refill for October first fortnight.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          vehicle_number: "Bus #12 (DL 01 AB 4321)",
+          expense_type: "MAINTENANCE",
+          month_year: currentMonth,
+          vendor_or_payee: "TATA Motors Commercial Workshop",
+          amount: 6800,
+          payment_status: "PAID",
+          payment_mode: "CHEQUE",
+          payment_date: "2026-10-14",
+          transaction_ref: "CHQ-778219",
+          receipt_number: "TRP-2026-104",
+          notes: "Quarterly safety fitness test, CCTV camera inspection, and brake lining replacement.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          vehicle_number: "Van #05 (DL 03 GH 9988)",
+          expense_type: "MONTHLY_CONTRACT",
+          month_year: currentMonth,
+          vendor_or_payee: "Shivam Tourist Bus Services",
+          amount: 28000,
+          payment_status: "PENDING",
+          payment_mode: "BANK_TRANSFER",
+          payment_date: "2026-10-25",
+          transaction_ref: null,
+          receipt_number: "TRP-2026-105",
+          notes: "Monthly contractor bill submitted for October. Pending payment approval.",
+        },
+      ]);
+      console.log("Seeded initial monthly vehicle transport expenses and contractor payouts.");
+    }
+  }
+}
+
+async function seedOnlineClassesIfEmpty(): Promise<void> {
+  const school = await db("institutes").where({ code: "DPA101" }).first();
+  const targetInstituteId = school ? school.id : "1";
+
+  if (await db.schema.hasTable("online_classes")) {
+    const existing = await db("online_classes").where({ institute_id: targetInstituteId }).count("id as count").first();
+    if (!existing || Number(existing.count) === 0) {
+      await db("online_classes").insert([
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          class_name: "Class 10",
+          section_name: "Section A",
+          subject_name: "Mathematics",
+          teacher_name: "Sunita Sharma",
+          topic: "Quadratic Equations: Finding Roots & Graphical Analysis",
+          class_date: new Date().toISOString().split("T")[0],
+          start_time: "04:30 PM",
+          end_time: "05:30 PM",
+          platform: "GOOGLE_MEET",
+          meeting_link: "https://meet.google.com/dpa-math-10a",
+          passcode: null,
+          status: "LIVE",
+          instructions: "Join with NCERT textbook and graph papers. Interactive numerical solving will be conducted.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          class_name: "Class 10",
+          section_name: "Section A",
+          subject_name: "Science & Physics",
+          teacher_name: "Ramesh Verma",
+          topic: "Light Reflection, Refraction & Lens Numerical",
+          class_date: "2026-10-21",
+          start_time: "10:00 AM",
+          end_time: "11:00 AM",
+          platform: "ZOOM",
+          meeting_link: "https://zoom.us/j/9876543210",
+          passcode: "DPA2026",
+          status: "SCHEDULED",
+          instructions: "Formula sheet uploaded in homework diary. Please review before joining.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          class_name: "Class 9",
+          section_name: "Section B",
+          subject_name: "English Literature",
+          teacher_name: "Neha Gupta",
+          topic: "The Road Not Taken by Robert Frost — Critical Appreciation",
+          class_date: "2026-10-22",
+          start_time: "11:30 AM",
+          end_time: "12:30 PM",
+          platform: "GOOGLE_MEET",
+          meeting_link: "https://meet.google.com/dpa-eng-09b",
+          passcode: null,
+          status: "SCHEDULED",
+          instructions: "Poetry reading followed by student Q&A round.",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          class_name: "Class 10",
+          section_name: "Section A",
+          subject_name: "Social Science",
+          teacher_name: "Sunita Sharma",
+          topic: "Nationalism in India: Civil Disobedience & Salt Satyagraha",
+          class_date: "2026-10-18",
+          start_time: "02:00 PM",
+          end_time: "03:00 PM",
+          platform: "GOOGLE_MEET",
+          meeting_link: "https://meet.google.com/dpa-sst-10a",
+          passcode: null,
+          status: "COMPLETED",
+          recording_url: "https://youtube.com/watch?v=dpa-sst-recorded",
+          instructions: "Recorded classroom session available for self-study and revision.",
+        },
+      ]);
+      console.log("Seeded initial online live classes for students & teachers.");
+    }
+  }
+}
+
+async function seedFeesIfEmpty(): Promise<void> {
+  const school = await db("institutes").where({ code: "DPA101" }).first();
+  const targetInstituteId = school ? school.id : "1";
+
+  if (await db.schema.hasTable("fee_payments")) {
+    const existing = await db("fee_payments").where({ institute_id: targetInstituteId }).count("id as count").first();
+    if (!existing || Number(existing.count) === 0) {
+      const student = await db("student_profiles").where({ institute_id: targetInstituteId }).first();
+      const studentId = student ? student.id : uuidv4();
+
+      await db("fee_payments").insert([
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_id: studentId,
+          amount_paid: 125000,
+          payment_mode: "ONLINE_RAZORPAY",
+          transaction_id: "pay_rzp_oct_01928",
+          receipt_number: "RCPT-2026-1001",
+          remarks: "Class 10 Term 1 Composite Tuition & Laboratory Fee batch collection",
+          collected_by: "Razorpay Gateway",
+          paid_at: "2026-10-04 11:20:00",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_id: studentId,
+          amount_paid: 95000,
+          payment_mode: "BANK_TRANSFER",
+          transaction_id: "NEFT-HDFC-882190",
+          receipt_number: "RCPT-2026-1002",
+          remarks: "Quarterly School Bus & Transport Facility dues collected",
+          collected_by: "Accounts Office",
+          paid_at: "2026-10-08 14:15:00",
+        },
+        {
+          id: uuidv4(),
+          institute_id: targetInstituteId,
+          student_id: studentId,
+          amount_paid: 68000,
+          payment_mode: "UPI",
+          transaction_id: "UPI-ICICI-293810",
+          receipt_number: "RCPT-2026-1003",
+          remarks: "Annual Examination & Activity Fund collection",
+          collected_by: "Cashier Window",
+          paid_at: "2026-10-15 10:45:00",
+        },
+      ]);
+      console.log("Seeded initial fee collection payments for Delhi Public Academy.");
+    }
+  }
+}
+
+async function seedCleanlinessIfEmpty(): Promise<void> {
+  const existingCount = await db("cleanliness_zones").count("id as count").first();
+  const count = Number(existingCount?.count || 0);
+  if (count > 0) return;
+
+  const targetInst = await db("institutes").where({ code: "DPA101" }).first();
+  const instId = targetInst ? targetInst.id : "3aea8ce8-a615-472e-b3ed-a555f44a2ed8";
+
+  console.log("Seeding initial campus hygiene & cleanliness facility zones...");
+  const zones = [
+    {
+      id: "zone-1",
+      institute_id: instId,
+      name: "Ground Floor Boys Washroom (Block A)",
+      code: "WR-B-GF",
+      category: "WASHROOM",
+      location_block: "Academic Block A - Ground Floor",
+      assigned_cleaner: "Ramesh Lal",
+      cleaner_phone: "98765-43210",
+      assigned_supervisor: "Dr. Sunil Verma (Estate Officer)",
+      cleaning_frequency: "Twice Daily (Morning & Afternoon)",
+      last_cleaned_at: "2026-10-22 08:30:00",
+      last_cleaned_by: "Ramesh Lal",
+      last_cleaned_tasks: JSON.stringify(["Mopping with Phenyl & Disinfectant", "Dustbins Emptied & Liners Replaced", "Liquid Soap Refilled", "Urinal Flush Checked"]),
+      next_cleaning_scheduled_at: "2026-10-22 13:30:00",
+      last_inspected_at: "2026-10-22 09:15:00",
+      last_inspected_by: "Dr. Sunil Verma (Estate Officer)",
+      next_inspection_due_at: "2026-10-22 16:00:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 4.8,
+      checklist_json: JSON.stringify([
+        { title: "Floor Cleanliness & Disinfection", passed: true },
+        { title: "No Foul Odor / Fresh Ventilation", passed: true },
+        { title: "Running Tap Water & No Leaks", passed: true },
+        { title: "Liquid Soap & Hand Wash Stocked", passed: true },
+        { title: "Dustbin Cleared with Garbage Bag", passed: true }
+      ]),
+      latest_inspection_remarks: "All 6 cubicles cleaned and disinfected. Floor is dry and exhaust fan working properly.",
+    },
+    {
+      id: "zone-2",
+      institute_id: instId,
+      name: "Ground Floor Girls Washroom (Block A)",
+      code: "WR-G-GF",
+      category: "WASHROOM",
+      location_block: "Academic Block A - Ground Floor",
+      assigned_cleaner: "Kamla Devi",
+      cleaner_phone: "98765-43211",
+      assigned_supervisor: "Smt. Sunita Sharma (Vice Principal)",
+      cleaning_frequency: "Twice Daily (Morning & Afternoon)",
+      last_cleaned_at: "2026-10-22 08:45:00",
+      last_cleaned_by: "Kamla Devi",
+      last_cleaned_tasks: JSON.stringify(["Floor Disinfection", "Sanitary Napkin Incinerator Checked", "Mirrors Cleaned", "Liquid Soap Refilled"]),
+      next_cleaning_scheduled_at: "2026-10-22 13:45:00",
+      last_inspected_at: "2026-10-22 09:30:00",
+      last_inspected_by: "Smt. Sunita Sharma (Vice Principal)",
+      next_inspection_due_at: "2026-10-22 16:30:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 4.9,
+      checklist_json: JSON.stringify([
+        { title: "Floor Cleanliness & Disinfection", passed: true },
+        { title: "Sanitary Disposal Bin Cleared", passed: true },
+        { title: "Running Tap Water & Basin Clean", passed: true },
+        { title: "Handwash & Paper Towels Available", passed: true },
+        { title: "Mirrors & Counters Spotless", passed: true }
+      ]),
+      latest_inspection_remarks: "Excellent hygiene maintained. Incinerator and sanitization unit functional.",
+    },
+    {
+      id: "zone-3",
+      institute_id: instId,
+      name: "1st Floor Boys Washroom (Block B)",
+      code: "WR-B-1F",
+      category: "WASHROOM",
+      location_block: "Secondary Wing Block B - 1st Floor",
+      assigned_cleaner: "Suraj Pal",
+      cleaner_phone: "98765-43212",
+      assigned_supervisor: "Shri Mohan Lal (Supervisor)",
+      cleaning_frequency: "Twice Daily",
+      last_cleaned_at: "2026-10-22 07:45:00",
+      last_cleaned_by: "Suraj Pal",
+      last_cleaned_tasks: JSON.stringify(["Basic Sweeping", "Floor Mopping"]),
+      next_cleaning_scheduled_at: "2026-10-22 12:00:00",
+      last_inspected_at: "2026-10-21 16:00:00",
+      last_inspected_by: "Shri Mohan Lal (Supervisor)",
+      next_inspection_due_at: "2026-10-22 14:00:00",
+      inspection_status: "NEEDS_ATTENTION",
+      hygiene_rating: 3.5,
+      checklist_json: JSON.stringify([
+        { title: "Floor Cleanliness & Disinfection", passed: true },
+        { title: "No Foul Odor / Fresh Ventilation", passed: false },
+        { title: "Running Tap Water & No Leaks", passed: false },
+        { title: "Liquid Soap & Hand Wash Stocked", passed: true },
+        { title: "Dustbin Cleared with Garbage Bag", passed: true }
+      ]),
+      latest_inspection_remarks: "Slight leak in tap #2 reported. Cleaner notified to mop immediately before lunch break.",
+    },
+    {
+      id: "zone-4",
+      institute_id: instId,
+      name: "Main Campus Garden & Central Green Lawn",
+      code: "GDN-MAIN",
+      category: "GARDEN_PARK",
+      location_block: "Central Quadrangle & Front Gate Entrance",
+      assigned_cleaner: "Mangat Ram (Head Gardener)",
+      cleaner_phone: "98765-43214",
+      assigned_supervisor: "Dr. Sunil Verma (Estate Officer)",
+      cleaning_frequency: "Daily Morning & Regular Weeding",
+      last_cleaned_at: "2026-10-22 07:15:00",
+      last_cleaned_by: "Mangat Ram (Head Gardener)",
+      last_cleaned_tasks: JSON.stringify(["Grass Mowing & Edge Trimming", "Fallen Leaves Swept & Composted", "Flowerbed Weeding & Soil Aeration", "Pathway Swept & Sprinkled"]),
+      next_cleaning_scheduled_at: "2026-10-23 07:00:00",
+      last_inspected_at: "2026-10-22 08:15:00",
+      last_inspected_by: "Dr. Sunil Verma (Estate Officer)",
+      next_inspection_due_at: "2026-10-23 08:30:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 5.0,
+      checklist_json: JSON.stringify([
+        { title: "Lawn Mowed & Grass Height Maintained", passed: true },
+        { title: "Fallen Leaves & Organic Waste Cleared", passed: true },
+        { title: "No Plastic / Candy Wrappers on Lawn", passed: true },
+        { title: "Garden Benches & Statues Clean", passed: true },
+        { title: "Sprinklers & Watering Completed", passed: true }
+      ]),
+      latest_inspection_remarks: "Lawn freshly manicured for the morning assembly. Flower beds vibrant and weed-free.",
+    },
+    {
+      id: "zone-5",
+      institute_id: instId,
+      name: "Kindergarten Play Park & Kids Garden",
+      code: "PRK-KIDS",
+      category: "GARDEN_PARK",
+      location_block: "Junior Wing East Lawn",
+      assigned_cleaner: "Shyam Singh",
+      cleaner_phone: "98765-43215",
+      assigned_supervisor: "Ms. Anjali Verma (Primary Head)",
+      cleaning_frequency: "Daily (Before & After Playtime)",
+      last_cleaned_at: "2026-10-22 08:00:00",
+      last_cleaned_by: "Shyam Singh",
+      last_cleaned_tasks: JSON.stringify(["Swings, Slides & Seesaws Sanitized", "Sandpit Checked for Stones & Sharp Debris", "Lawn Litter Cleared", "Safety Soft Mats Disinfected"]),
+      next_cleaning_scheduled_at: "2026-10-22 14:30:00",
+      last_inspected_at: "2026-10-22 08:30:00",
+      last_inspected_by: "Ms. Anjali Verma (Primary Head)",
+      next_inspection_due_at: "2026-10-22 15:00:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 4.9,
+      checklist_json: JSON.stringify([
+        { title: "Play Equipment Clean & Disinfected", passed: true },
+        { title: "Sandpit Levelled & Foreign Objects Removed", passed: true },
+        { title: "Soft Rubber Flooring Sanitized", passed: true },
+        { title: "Fencing & Gate Latches Secure", passed: true },
+        { title: "Litter Bins Emptied", passed: true }
+      ]),
+      latest_inspection_remarks: "Playground equipment sanitised. Safe for nursery and kindergarten students.",
+    },
+    {
+      id: "zone-6",
+      institute_id: instId,
+      name: "RO Cold Drinking Water Station #1",
+      code: "RO-COOL-1",
+      category: "WATER_STATION",
+      location_block: "Central Dining & Cafeteria Zone",
+      assigned_cleaner: "Ramesh Lal",
+      cleaner_phone: "98765-43210",
+      assigned_supervisor: "Dr. Sunil Verma (Estate Officer)",
+      cleaning_frequency: "Twice Daily & Weekly Filter Backwash",
+      last_cleaned_at: "2026-10-22 08:15:00",
+      last_cleaned_by: "Ramesh Lal",
+      last_cleaned_tasks: JSON.stringify(["Stainless Steel Basin Polished", "Drain Trays Flushed & Cleared", "TDS Level Checked (115 ppm)", "Surrounding Floor Mopped"]),
+      next_cleaning_scheduled_at: "2026-10-22 14:00:00",
+      last_inspected_at: "2026-10-22 09:00:00",
+      last_inspected_by: "Dr. Sunil Verma (Estate Officer)",
+      next_inspection_due_at: "2026-10-23 09:00:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 4.9,
+      checklist_json: JSON.stringify([
+        { title: "Water TDS Tested within 80-150 ppm", passed: true },
+        { title: "Chiller Temperature 15°C Verified", passed: true },
+        { title: "Stainless Steel Surface Cleaned", passed: true },
+        { title: "No Water Clogging / Overflow in Drain", passed: true },
+        { title: "UV Sterilizer Indicator Active", passed: true }
+      ]),
+      latest_inspection_remarks: "TDS 115 ppm. Safe drinking water standards verified. Drainage flowing freely.",
+    },
+    {
+      id: "zone-7",
+      institute_id: instId,
+      name: "Main Sports Complex & Football Playground",
+      code: "PLY-MAIN",
+      category: "PLAYGROUND",
+      location_block: "Outdoor Sports Field & Running Track",
+      assigned_cleaner: "Mangat Ram & Team",
+      cleaner_phone: "98765-43214",
+      assigned_supervisor: "Coach Devendra Singh (Sports Director)",
+      cleaning_frequency: "Daily Afternoon & Pre-Match",
+      last_cleaned_at: "2026-10-21 18:00:00",
+      last_cleaned_by: "Mangat Ram & Team",
+      last_cleaned_tasks: JSON.stringify(["Running Track Debris Swept", "Football Pitch Rolling & Lining", "Boundary Dustbins Cleared"]),
+      next_cleaning_scheduled_at: "2026-10-22 17:30:00",
+      last_inspected_at: "2026-10-21 18:30:00",
+      last_inspected_by: "Coach Devendra Singh",
+      next_inspection_due_at: "2026-10-22 18:00:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 4.8,
+      checklist_json: JSON.stringify([
+        { title: "Track & Field Free from Stones & Glass", passed: true },
+        { title: "Pitch Lines Marked & Grass Leveled", passed: true },
+        { title: "Spectator Benches Clean", passed: true },
+        { title: "Litter Cans Emptied Around Stadium", passed: true }
+      ]),
+      latest_inspection_remarks: "Field ready for evening sports practice and athletics drills.",
+    },
+    {
+      id: "zone-8",
+      institute_id: instId,
+      name: "Senior Wing Classrooms (Rooms 101 to 110) & Corridors",
+      code: "CLS-SR-101",
+      category: "CLASSROOM",
+      location_block: "Academic Block B - 1st Floor",
+      assigned_cleaner: "Suraj Pal",
+      cleaner_phone: "98765-43212",
+      assigned_supervisor: "Shri Mohan Lal (Supervisor)",
+      cleaning_frequency: "Daily Morning & Post-School",
+      last_cleaned_at: "2026-10-22 06:30:00",
+      last_cleaned_by: "Suraj Pal",
+      last_cleaned_tasks: JSON.stringify(["Desks & Chairs Dusted", "Whiteboards Cleaned", "Floors Mopped", "Dustbins Emptied"]),
+      next_cleaning_scheduled_at: "2026-10-22 14:45:00",
+      last_inspected_at: "2026-10-22 07:45:00",
+      last_inspected_by: "Shri Mohan Lal (Supervisor)",
+      next_inspection_due_at: "2026-10-22 15:30:00",
+      inspection_status: "VERIFIED_CLEAN",
+      hygiene_rating: 4.7,
+      checklist_json: JSON.stringify([
+        { title: "Floors Swept & Mopped", passed: true },
+        { title: "Student Benches Wiped Down", passed: true },
+        { title: "Window Panes & Fans Dust-Free", passed: true },
+        { title: "Classroom Waste Bins Cleaned", passed: true }
+      ]),
+      latest_inspection_remarks: "Classrooms spotless before student arrival.",
+    }
+  ];
+
+  await db("cleanliness_zones").insert(zones);
+
+  const inspections = [
+    {
+      id: "insp-1",
+      institute_id: instId,
+      zone_id: "zone-1",
+      zone_name: "Ground Floor Boys Washroom (Block A)",
+      category: "WASHROOM",
+      log_type: "INSPECTION",
+      action_date: "2026-10-22 09:15:00",
+      performed_by: "Dr. Sunil Verma (Estate Officer)",
+      role: "SUPERVISOR",
+      rating: 4.8,
+      status: "VERIFIED_CLEAN",
+      checklist_results: JSON.stringify(["Floor Cleanliness Passed", "No Foul Odor Passed", "Taps & Water Passed", "Soaps Refilled Passed", "Bins Cleared Passed"]),
+      next_scheduled_date: "2026-10-22 16:00:00",
+      remarks: "Thoroughly disinfected. All urinals and flush sensors working flawlessly."
+    },
+    {
+      id: "insp-2",
+      institute_id: instId,
+      zone_id: "zone-4",
+      zone_name: "Main Campus Garden & Central Green Lawn",
+      category: "GARDEN_PARK",
+      log_type: "INSPECTION",
+      action_date: "2026-10-22 08:15:00",
+      performed_by: "Dr. Sunil Verma (Estate Officer)",
+      role: "SUPERVISOR",
+      rating: 5.0,
+      status: "VERIFIED_CLEAN",
+      checklist_results: JSON.stringify(["Grass Trimmed Passed", "Leaves Cleared Passed", "No Plastic Passed", "Benches Clean Passed", "Plants Watered Passed"]),
+      next_scheduled_date: "2026-10-23 08:30:00",
+      remarks: "Garden is looking lush, neat and completely clean for assembly."
+    },
+    {
+      id: "insp-3",
+      institute_id: instId,
+      zone_id: "zone-2",
+      zone_name: "Ground Floor Girls Washroom (Block A)",
+      category: "WASHROOM",
+      log_type: "INSPECTION",
+      action_date: "2026-10-22 09:30:00",
+      performed_by: "Smt. Sunita Sharma (Vice Principal)",
+      role: "SUPERVISOR",
+      rating: 4.9,
+      status: "VERIFIED_CLEAN",
+      checklist_results: JSON.stringify(["Floors Disinfected Passed", "Incinerator Checked Passed", "Sanitizer Stocked Passed"]),
+      next_scheduled_date: "2026-10-22 16:30:00",
+      remarks: "Very clean and properly sanitised."
+    },
+    {
+      id: "insp-4",
+      institute_id: instId,
+      zone_id: "zone-3",
+      zone_name: "1st Floor Boys Washroom (Block B)",
+      category: "WASHROOM",
+      log_type: "INSPECTION",
+      action_date: "2026-10-21 16:00:00",
+      performed_by: "Shri Mohan Lal (Supervisor)",
+      role: "SUPERVISOR",
+      rating: 3.5,
+      status: "NEEDS_ATTENTION",
+      checklist_results: JSON.stringify(["Floor Damp", "Tap 2 Dripping"]),
+      next_scheduled_date: "2026-10-22 14:00:00",
+      remarks: "Plumber informed to repair leaking tap 2. Second mopping needed."
+    }
+  ];
+
+  await db("cleanliness_inspections").insert(inspections);
+  console.log("Seeded initial cleanliness facility zones and inspections for Delhi Public Academy.");
 }
 
 

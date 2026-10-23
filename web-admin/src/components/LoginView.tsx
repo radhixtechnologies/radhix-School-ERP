@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { School, ShieldCheck, Lock, Mail, AlertTriangle, Smartphone, ArrowRight } from "lucide-react";
 
 interface Props {
-  portal: "admin" | "super-admin";
-  onSwitchPortal: (portal: "admin" | "super-admin") => void;
+  portal: "admin" | "super-admin" | "landing";
+  onSwitchPortal: (portal: "admin" | "super-admin" | "landing") => void;
   onLoginSuccess: (token: string, user: any, institute: any) => void;
 }
 
@@ -98,6 +98,45 @@ export const LoginView: React.FC<Props> = ({ portal, onSwitchPortal, onLoginSucc
           : "0 20px 40px -15px rgba(15, 23, 42, 0.1), 0 0 0 1px #E2E8F0",
         border: "1px solid #E2E8F0"
       }}>
+        {/* Top Back to Public Website & Packages */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <button
+            type="button"
+            onClick={() => onSwitchPortal("landing")}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: isSuper ? "#c59dff" : "#4F46E5",
+              fontSize: "12.5px",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              padding: 0
+            }}
+          >
+            <span>← Public Website & Packages</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSwitchPortal("landing")}
+            style={{
+              background: "rgba(197, 157, 255, 0.15)",
+              border: "1px solid rgba(197, 157, 255, 0.35)",
+              color: isSuper ? "#c59dff" : "#4338CA",
+              borderRadius: "8px",
+              padding: "4px 10px",
+              fontSize: "11px",
+              fontWeight: 900,
+              cursor: "pointer"
+            }}
+          >
+            + Register School
+          </button>
+        </div>
+
         {/* Path Selector Tabs: School Admin vs Super Admin */}
         <div style={{
           display: "grid",

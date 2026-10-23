@@ -474,6 +474,143 @@ export async function createTables(db: Knex): Promise<void> {
       });
     }
   }
+
+  // Ensure substitution columns in teacher_leaves
+  if (await db.schema.hasTable("teacher_leaves")) {
+    const hasSubstitute = await db.schema.hasColumn("teacher_leaves", "substitute_staff_id");
+    if (!hasSubstitute) {
+      await db.schema.table("teacher_leaves", (table) => {
+        table.string("substitute_staff_id").nullable();
+        table.string("substitute_name").nullable();
+        table.text("substitution_notes").nullable();
+        table.text("admin_remarks").nullable();
+        table.timestamp("approved_at").nullable();
+      });
+    }
+  }
+
+  // 25. Staff Salaries & Payroll Disbursal
+  if (!(await db.schema.hasTable("staff_salaries"))) {
+    await db.schema.createTable("staff_salaries", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("staff_id").notNullable().references("id").inTable("staff_profiles").onDelete("CASCADE");
+      table.string("staff_name").notNullable();
+      table.string("designation").notNullable();
+      table.string("department").nullable();
+      table.string("month_year").notNullable(); // e.g. "October 2026"
+      table.decimal("basic_salary", 10, 2).notNullable();
+      table.decimal("allowance", 10, 2).defaultTo(0);
+      table.decimal("deduction", 10, 2).defaultTo(0);
+      table.decimal("net_salary", 10, 2).notNullable();
+      table.string("payment_status").defaultTo("PENDING"); // PENDING, PAID
+      table.string("payment_mode").nullable(); // BANK_TRANSFER, UPI, CHEQUE, CASH
+      table.date("payment_date").nullable();
+      table.string("transaction_ref").nullable();
+      table.string("voucher_number").nullable();
+      table.text("remarks").nullable();
+      table.string("disbursed_by").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // 26. Monthly Fleet Transport & Vehicle Expenses / Contractor Payouts
+  if (!(await db.schema.hasTable("transport_expenses"))) {
+    await db.schema.createTable("transport_expenses", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("vehicle_id").nullable();
+      table.string("vehicle_number").notNullable();
+      table.string("expense_type").defaultTo("MONTHLY_CONTRACT"); // MONTHLY_CONTRACT, FUEL, MAINTENANCE, DRIVER_STIPEND, MISC
+      table.string("month_year").notNullable(); // e.g. "October 2026"
+      table.string("vendor_or_payee").notNullable(); // e.g. "Rathore Travels Agency (Contractor)" or Driver Name
+      table.decimal("amount", 10, 2).notNullable();
+      table.string("payment_status").defaultTo("PAID"); // PENDING, PAID
+      table.string("payment_mode").defaultTo("BANK_TRANSFER"); // BANK_TRANSFER, UPI, CHEQUE, CASH
+      table.date("payment_date").notNullable();
+      table.string("transaction_ref").nullable();
+      table.string("receipt_number").notNullable();
+      table.text("notes").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // 27. Online Classes / Virtual Classroom Management
+  if (!(await db.schema.hasTable("online_classes"))) {
+    await db.schema.createTable("online_classes", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("class_id").nullable();
+      table.string("class_name").notNullable(); // e.g. "Class 10"
+      table.string("section_name").defaultTo("A"); // e.g. "Section A"
+      table.string("subject_name").notNullable(); // e.g. "Mathematics"
+      table.string("teacher_id").nullable();
+      table.string("teacher_name").notNullable(); // e.g. "Sunita Sharma"
+      table.string("topic").notNullable(); // e.g. "Quadratic Equations - Chapter 4"
+      table.date("class_date").notNullable(); // e.g. "2026-10-20"
+      table.string("start_time").notNullable(); // e.g. "10:00 AM"
+      table.string("end_time").notNullable(); // e.g. "11:00 AM"
+      table.string("platform").defaultTo("GOOGLE_MEET"); // GOOGLE_MEET, ZOOM, JITSI, MICROSOFT_TEAMS
+      table.string("meeting_link").notNullable();
+      table.string("passcode").nullable();
+      table.string("status").defaultTo("SCHEDULED"); // SCHEDULED, LIVE, COMPLETED, CANCELLED
+      table.string("recording_url").nullable();
+      table.text("instructions").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // 28. Campus Cleanliness & Hygiene Zones
+  if (!(await db.schema.hasTable("cleanliness_zones"))) {
+    await db.schema.createTable("cleanliness_zones", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("name").notNullable();
+      table.string("code").notNullable();
+      table.string("category").notNullable(); // "WASHROOM", "GARDEN_PARK", "WATER_STATION", "PLAYGROUND", "CLASSROOM", "CAFETERIA"
+      table.string("location_block").notNullable();
+      table.string("assigned_cleaner").notNullable();
+      table.string("cleaner_phone").nullable();
+      table.string("assigned_supervisor").notNullable();
+      table.string("cleaning_frequency").defaultTo("Twice Daily");
+      table.timestamp("last_cleaned_at").nullable();
+      table.string("last_cleaned_by").nullable();
+      table.text("last_cleaned_tasks").defaultTo("[]");
+      table.timestamp("next_cleaning_scheduled_at").nullable();
+      table.timestamp("last_inspected_at").nullable();
+      table.string("last_inspected_by").nullable();
+      table.timestamp("next_inspection_due_at").nullable();
+      table.string("inspection_status").defaultTo("VERIFIED_CLEAN");
+      table.decimal("hygiene_rating", 3, 1).defaultTo(5.0);
+      table.text("checklist_json").defaultTo("[]");
+      table.text("latest_inspection_remarks").nullable();
+      table.string("photo_proof_url").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+      table.timestamp("updated_at").defaultTo(db.fn.now());
+    });
+  }
+
+  // 29. Campus Cleanliness & Inspection Audit Logs
+  if (!(await db.schema.hasTable("cleanliness_inspections"))) {
+    await db.schema.createTable("cleanliness_inspections", (table) => {
+      table.string("id").primary();
+      table.string("institute_id").notNullable().references("id").inTable("institutes").onDelete("CASCADE");
+      table.string("zone_id").notNullable().references("id").inTable("cleanliness_zones").onDelete("CASCADE");
+      table.string("zone_name").notNullable();
+      table.string("category").notNullable();
+      table.string("log_type").defaultTo("INSPECTION");
+      table.timestamp("action_date").notNullable();
+      table.string("performed_by").notNullable();
+      table.string("role").notNullable();
+      table.decimal("rating", 3, 1).nullable();
+      table.string("status").notNullable();
+      table.text("checklist_results").defaultTo("[]");
+      table.timestamp("next_scheduled_date").nullable();
+      table.text("remarks").nullable();
+      table.string("photo_url").nullable();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    });
+  }
 }
 
 

@@ -254,6 +254,15 @@ class StudentHomeTab extends StatelessWidget {
                 },
               ),
               _pastelModuleCard(
+                title: isHindi ? 'ऑनलाइन क्लास' : 'Live Class',
+                bgColor: const Color(0xFFEFF6FF),
+                iconColor: const Color(0xFF2563EB),
+                icon: Icons.videocam,
+                onTap: () {
+                  _showOnlineClassesDialog(context);
+                },
+              ),
+              _pastelModuleCard(
                 title: 'Pay Fee',
                 bgColor: const Color(0xFFE8FBF4),
                 iconColor: const Color(0xFF0D9488),
@@ -561,6 +570,147 @@ class StudentHomeTab extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showOnlineClassesDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.videocam, color: Color(0xFF2563EB), size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        isHindi ? 'लाइव ऑनलाइन कक्षाएँ' : 'Live Online Classes',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Live Class Card 1
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.fiber_manual_record, color: Colors.white, size: 10),
+                              SizedBox(width: 4),
+                              Text('LIVE NOW', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        const Text('10:30 AM - 11:30 AM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF991B1B))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Mathematics (Class 10-A)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                    const Text('Topic: Quadratic Equations — Nature of Roots', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    const SizedBox(height: 4),
+                    const Text('Teacher: Sunita Sharma (PGT Math)', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(Icons.video_call, color: Colors.white, size: 18),
+                        label: Text(
+                          isHindi ? 'कक्षा में जुड़ें (Join Google Meet)' : 'Join Live Class (Google Meet)',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Connecting to Google Meet: https://meet.google.com/dpa-math-10a'),
+                              backgroundColor: Color(0xFF059669),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Scheduled Class Card 2
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('SCHEDULED', style: TextStyle(color: Color(0xFF2563EB), fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                        const Text('Tomorrow • 10:00 AM', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Science & Physics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                    const Text('Topic: Light Reflection & Numerical Problem Solving', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    const Text('Teacher: Ramesh Verma • Zoom Meeting', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

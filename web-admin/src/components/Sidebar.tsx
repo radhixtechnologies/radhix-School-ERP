@@ -14,7 +14,10 @@ import {
   ShieldCheck,
   LifeBuoy,
   Navigation,
-  UserCheck
+  UserCheck,
+  Wallet,
+  Video,
+  Sparkles
 } from "lucide-react";
 
 interface Props {
@@ -43,10 +46,13 @@ export const Sidebar: React.FC<Props> = ({
     { id: "counsellor", label: "Admission Counselling Hub", icon: UserCheck },
     { id: "admissions", label: "Student Registry", icon: GraduationCap },
     { id: "academics", label: "Classes & Sections", icon: School },
+    { id: "online-classes", label: "Live Online Classes", icon: Video },
     { id: "homework", label: "Homework Diary", icon: BookOpen },
     { id: "exams", label: "Exams & Marksheets", icon: Award },
-    { id: "staff", label: "Teachers & Staff", icon: Users },
+    { id: "staff", label: "Teachers & Proxy Leaves", icon: Users },
     { id: "attendance", label: "Daily Attendance Hub", icon: CalendarCheck },
+    { id: "cleanliness", label: "Hygiene & Cleanliness Hub", icon: Sparkles },
+    { id: "finance", label: "Finance & Staff Payroll", icon: Wallet },
     { id: "fees", label: "Fee Management (Razorpay)", icon: CreditCard },
     { id: "vehicles", label: "School Fleet & Vehicles", icon: Bus },
     { id: "drivers", label: "Driver Registration Hub", icon: ShieldCheck },
@@ -102,9 +108,25 @@ export const Sidebar: React.FC<Props> = ({
               alignItems: "center",
               justifyContent: "center",
               fontWeight: "900",
+              overflow: "hidden",
+              border: (institute?.logo_url || institute?.logoUrl) ? "1.5px solid #CBD5E1" : "none",
               boxShadow: "0 6px 16px -2px rgba(0, 0, 0, 0.2)"
             }}>
-              {isSuperAdmin ? <ShieldCheck size={22} /> : <School size={22} />}
+              {isSuperAdmin ? (
+                <ShieldCheck size={22} />
+              ) : (institute?.logo_url || institute?.logoUrl) ? (
+                <img
+                  src={institute.logo_url || institute.logoUrl}
+                  alt={institute?.name || "School Logo"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => {
+                    // Fallback to School icon on error
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <School size={22} />
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -158,22 +180,59 @@ export const Sidebar: React.FC<Props> = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "12px",
+                  justifyContent: "space-between",
                   padding: "11px 14px",
                   borderRadius: "12px",
-                  background: active ? "var(--primary-color, #474A74)" : "transparent",
+                  background: active
+                    ? "var(--primary-gradient, linear-gradient(135deg, #3D5EE1 0%, #2E47C7 100%))"
+                    : "transparent",
                   color: active ? "#FFFFFF" : "#64748B",
                   fontWeight: active ? "700" : "600",
                   fontSize: "13px",
                   textAlign: "left",
                   border: "none",
                   cursor: "pointer",
-                  boxShadow: active ? "0 4px 12px rgba(0, 0, 0, 0.15)" : "none",
-                  transition: "all 0.2s ease"
+                  boxShadow: active ? "0 6px 18px rgba(61, 94, 225, 0.35)" : "none",
+                  transition: "all 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
+                  position: "relative",
                 }}
               >
-                <Icon size={17} color={active ? "#FFFFFF" : "#64748B"} />
-                <span>{item.label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <Icon size={17} color={active ? "#FFFFFF" : "#64748B"} />
+                  <span>{item.label}</span>
+                </div>
+
+                {item.id === "notices" && (
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 800,
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      background: active ? "rgba(255, 255, 255, 0.25)" : "#FEF2F2",
+                      color: active ? "#FFFFFF" : "#EF4444",
+                      border: active ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid #FCA5A5",
+                    }}
+                  >
+                    LIVE
+                  </span>
+                )}
+
+                {item.id === "cleanliness" && (
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 800,
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      background: active ? "rgba(255, 255, 255, 0.25)" : "#ECFDF5",
+                      color: active ? "#FFFFFF" : "#10B981",
+                      border: active ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid #A7F3D0",
+                    }}
+                  >
+                    AUDIT
+                  </span>
+                )}
               </button>
             );
           })}

@@ -1,4 +1,4 @@
-﻿import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
@@ -54,6 +54,7 @@ app.use("/api/v1/notices", noticeRoutes);
 app.use("/api/v1/fees", feeRoutes);
 app.use("/api/v1/homework", homeworkRoutes);
 app.use("/api/v1/school-features", schoolFeaturesRoutes);
+app.use("/api/v1", schoolFeaturesRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

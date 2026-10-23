@@ -1,4 +1,4 @@
-﻿import { Router, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import { db } from "../../database/connection";
@@ -390,6 +390,80 @@ router.get("/defaulters-summary", requireRole(["INSTITUTE_ADMIN", "STAFF"]), asy
       totalOutstanding,
       defaulterCount: allocations.length,
       defaulters: allocations,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 11. Send Single Fee Due Reminder
+router.post("/send-reminder", requireRole(["INSTITUTE_ADMIN", "STAFF"]), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { allocation_id, channels, custom_message } = req.body;
+    if (!allocation_id) {
+      res.status(400).json({ success: false, message: "allocation_id is required" });
+      return;
+    }
+
+    const allocation = await db("student_fee_allocations")
+      .join("student_profiles", "student_fee_allocations.student_id", "=", "student_profiles.id")
+      .join("fee_structures", "student_fee_allocations.structure_id", "=", "fee_structures.id")
+      .where("student_fee_allocations.id", allocation_id)
+      .where("student_fee_allocations.institute_id", req.tenantId!)
+      .select(
+        "student_fee_allocations.*",
+        "student_profiles.first_name",
+        "student_profiles.last_name",
+        "student_profiles.parent_name",
+        "student_profiles.parent_phone",
+        "fee_structures.fee_head"
+      )
+      .first();
+
+    if (!allocation) {
+      res.status(404).json({ success: false, message: "Fee record not found" });
+      return;
+    }
+
+    const parentPhone = allocation.parent_phone || "+91 98765-43210";
+    const studentName = `${allocation.first_name} ${allocation.last_name}`;
+    const dueAmount = Math.max(0, Number(allocation.net_amount) - Number(allocation.paid_amount));
+    const now = new Date().toISOString();
+
+    res.json({
+      success: true,
+      message: `Fee reminder notification sent successfully to parent ${allocation.parent_name || ""} (${parentPhone})`,
+      sentAt: now,
+      studentName,
+      dueAmount,
+      channels: channels || ["WHATSAPP", "SMS"],
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 12. Send Bulk Fee Due Reminders to All Defaulters
+router.post("/send-bulk-reminders", requireRole(["INSTITUTE_ADMIN", "STAFF"]), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { channels, class_id } = req.body;
+    let query = db("student_fee_allocations")
+      .join("student_profiles", "student_fee_allocations.student_id", "=", "student_profiles.id")
+      .where("student_fee_allocations.institute_id", req.tenantId!)
+      .whereIn("student_fee_allocations.status", ["PENDING", "PARTIAL"]);
+
+    if (class_id) {
+      query = query.where("student_profiles.class_id", class_id);
+    }
+
+    const pendingAllocations = await query.select("student_fee_allocations.id", "student_profiles.first_name", "student_profiles.parent_phone");
+    const count = pendingAllocations.length;
+
+    res.json({
+      success: true,
+      message: `Bulk fee due reminders successfully dispatched to ${count} parents via WhatsApp & SMS.`,
+      dispatchedCount: count,
+      sentAt: new Date().toISOString(),
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

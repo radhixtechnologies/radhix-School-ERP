@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SchoolPrintHeader } from "./SchoolPrintHeader";
 import {
   Plus,
   Search,
@@ -1454,16 +1455,15 @@ export const AdmissionsView = ({ institute, token, onNavigateTab }: Props) => {
       {/* MODAL 3: CREATED SUCCESS MODAL */}
       {createdStudent && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: "20px" }}>
-          <div style={{ background: "#fff", borderRadius: "20px", maxWidth: "480px", width: "100%", padding: "28px", textAlign: "center", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)" }}>
-            <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "#DCFCE7", color: "#166534", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <CheckCircle2 size={36} />
-            </div>
-            <h3 style={{ fontSize: "20px", fontWeight: "900", color: "#0F172A", margin: "0 0 6px" }}>
-              Student Admission Successfully Registered!
-            </h3>
-            <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px" }}>
-              Admission Number: <strong style={{ color: "#3D5EE1", fontFamily: "monospace" }}>{createdStudent.admissionNumber}</strong>
-            </p>
+          <div style={{ background: "#fff", borderRadius: "20px", maxWidth: "560px", width: "100%", padding: "28px", textAlign: "center", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)" }}>
+            <SchoolPrintHeader
+              institute={institute}
+              documentTitle="ADMISSION REGISTRATION SLIP"
+              documentSubtitle="Student Enrolment Confirmation"
+              documentNumber={createdStudent.admissionNumber}
+              documentDate={new Date().toISOString().slice(0, 10)}
+              badgeText="ADMISSION REGISTERED"
+            />
 
             <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", textAlign: "left", fontSize: "13px", marginBottom: "20px", border: "1.5px dashed #cbd5e1" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
@@ -1682,6 +1682,17 @@ export const AdmissionsView = ({ institute, token, onNavigateTab }: Props) => {
 
             {/* Scrollable Dossier Content */}
             <div style={{ padding: "26px 28px", overflowY: "auto", flex: 1, background: "#F8FAFC", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+              <div style={{ background: "#FFFFFF", padding: "18px 22px", borderRadius: "14px", border: "1px solid #E2E8F0" }}>
+                <SchoolPrintHeader
+                  institute={institute}
+                  documentTitle="OFFICIAL STUDENT DOSSIER"
+                  documentSubtitle="Scholar Academic & Compliance Enrolment Record"
+                  documentNumber={selectedStudentDetails.admission_number || selectedStudentDetails.admissionNumber}
+                  documentDate={selectedStudentDetails.admission_date || "2026-10-13"}
+                  badgeText="VERIFIED ENROLLED"
+                />
+              </div>
 
               {/* 1. Basic Identity Details */}
               <div style={{ background: "#FFFFFF", padding: "18px 22px", borderRadius: "14px", border: "1px solid #E2E8F0" }}>

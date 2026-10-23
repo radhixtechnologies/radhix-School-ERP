@@ -1,7 +1,12 @@
 import React, { useState } from "react";
+import { SchoolPrintHeader } from "./SchoolPrintHeader";
 import { Award, FileText, CheckCircle2, Search, Filter, Download, Plus, BookOpen, Printer, X, Edit3 } from "lucide-react";
 
-export const ExamsView: React.FC = () => {
+interface Props {
+  institute?: any;
+}
+
+export const ExamsView: React.FC<Props> = ({ institute }) => {
   const [selectedTerm, setSelectedTerm] = useState("Term 1 Mid-Term Examination");
   const [selectedClass, setSelectedClass] = useState("Class 10 - Section A");
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -398,14 +403,18 @@ export const ExamsView: React.FC = () => {
       {selectedStudentForCard && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" }}>
           <div style={{ background: "#fff", borderRadius: "16px", maxWidth: "560px", width: "100%", padding: "28px", border: "2px solid #CBD5E1", boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: "800", color: "#4338CA", textTransform: "uppercase" }}>DELHI PUBLIC ACADEMY (CBSE AFFIL. 2130045)</div>
-                <h2 style={{ fontSize: "18px", fontWeight: "900", margin: "2px 0", color: "#0F172A" }}>Official Student Report Card</h2>
-                <div style={{ fontSize: "12px", color: "#64748B" }}>Academic Year 2026-27 • {selectedTerm}</div>
-              </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }} className="no-print">
               <button onClick={() => setSelectedStudentForCard(null)} style={{ background: "transparent", border: "none", fontSize: "20px", cursor: "pointer" }}>×</button>
             </div>
+
+            <SchoolPrintHeader
+              institute={institute}
+              documentTitle="OFFICIAL REPORT CARD"
+              documentSubtitle={`Cumulative Marksheet • ${selectedTerm}`}
+              documentNumber={`REP-2026-0${selectedStudentForCard.roll}`}
+              documentDate="Session 2026-27"
+              badgeText="EXAM BOARD VERIFIED"
+            />
 
             <div style={{ background: "#F8FAFC", padding: "12px 16px", borderRadius: "10px", marginBottom: "16px", fontSize: "13px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
               <div>Student Name: <strong style={{ color: "#0F172A" }}>{selectedStudentForCard.name}</strong></div>

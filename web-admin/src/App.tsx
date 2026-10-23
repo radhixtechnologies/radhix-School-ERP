@@ -14,6 +14,12 @@ import { TransportView } from "./components/TransportView";
 import { SuperAdminView } from "./components/SuperAdminView";
 import { TicketsView } from "./components/TicketsView";
 import { AdmissionCounsellorView } from "./components/AdmissionCounsellorView";
+import { FinanceView } from "./components/FinanceView";
+import { OnlineClassesView } from "./components/OnlineClassesView";
+import { CleanlinessInspectionView } from "./components/CleanlinessInspectionView";
+import { GlobalLoader } from "./components/GlobalLoader";
+import { triggerGlobalLoader } from "./services/apiMockInterceptor";
+import { CustomerLandingPage } from "./components/CustomerLandingPage";
 import {
   Calendar,
   Bell,
@@ -27,10 +33,14 @@ import {
   Search,
   Moon,
   Sun,
-  MessageSquare
+  MessageSquare,
+  Sparkles,
+  Plus,
+  GraduationCap,
+  Globe
 } from "lucide-react";
 
-type PortalType = "admin" | "super-admin";
+type PortalType = "admin" | "super-admin" | "landing";
 
 export default function App() {
   // Determine current portal and tab from URL
@@ -46,10 +56,17 @@ export default function App() {
       };
     }
 
-    // Default to /admin
+    if (path.startsWith("/admin")) {
+      return {
+        portal: "admin",
+        tab: tabParam || "dashboard"
+      };
+    }
+
+    // Default to Public Customer Landing Website on "/" or "/landing"
     return {
-      portal: "admin",
-      tab: tabParam || "dashboard"
+      portal: "landing",
+      tab: tabParam || "home"
     };
   };
 
@@ -58,10 +75,24 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>(initial.tab);
 
   const [token, setToken] = useState<string | null>(localStorage.getItem("ia_token"));
-  const [user, setUser] = useState<any>(null);
-  const [institute, setInstitute] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const u = localStorage.getItem("ia_user");
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [institute, setInstitute] = useState<any>(() => {
+    try {
+      const inst = localStorage.getItem("ia_institute");
+      return inst ? JSON.parse(inst) : null;
+    } catch {
+      return null;
+    }
+  });
   const [stats, setStats] = useState<any>(null);
-  const [loadingProfile, setLoadingProfile] = useState<boolean>(!!token);
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
 
   // Pure 2-Theme Mode (Light & Dark Mode matching Preskool)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -78,18 +109,25 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-
-
-
   // Synchronize browser history and path
   const navigateTo = (portal: PortalType, tab?: string) => {
-    const basePath = portal === "super-admin" ? "/super-admin" : "/admin";
-    const selectedTab = tab || (portal === "super-admin" ? "super-dashboard" : "dashboard");
-    const targetUrl = `${basePath}?tab=${selectedTab}`;
+    triggerGlobalLoader(280);
+    let targetUrl = "/";
+    if (portal === "super-admin") {
+      const selectedTab = tab || "super-dashboard";
+      targetUrl = `/super-admin?tab=${selectedTab}`;
+      setActiveTab(selectedTab);
+    } else if (portal === "admin") {
+      const selectedTab = tab || "dashboard";
+      targetUrl = `/admin?tab=${selectedTab}`;
+      setActiveTab(selectedTab);
+    } else {
+      targetUrl = "/";
+      setActiveTab("home");
+    }
 
     window.history.pushState(null, "", targetUrl);
     setCurrentPortal(portal);
-    setActiveTab(selectedTab);
   };
 
   // Listen for browser forward/back buttons
@@ -99,19 +137,9 @@ export default function App() {
       setCurrentPortal(route.portal);
       setActiveTab(route.tab);
     };
-
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-
-  // Normalize root URL "/" to "/admin"
-  useEffect(() => {
-    const path = window.location.pathname;
-    if (path === "/" || path === "") {
-      const defaultPortal = user?.role === "SUPER_ADMIN" ? "super-admin" : "admin";
-      navigateTo(defaultPortal);
-    }
-  }, [user]);
 
   // Load user profile on mount
   useEffect(() => {
@@ -123,37 +151,44 @@ export default function App() {
   }, [token]);
 
   const loadProfileAndStats = async () => {
-    setLoadingProfile(true);
+    if (!token) return;
     try {
       const meRes = await fetch("http://localhost:5000/api/v1/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const meData = await meRes.json();
-      if (meData.success) {
+      if (meData.success && meData.user) {
         setUser(meData.user);
-        setInstitute(meData.institute);
+        localStorage.setItem("ia_user", JSON.stringify(meData.user));
+        if (meData.institute) {
+          setInstitute(meData.institute);
+          localStorage.setItem("ia_institute", JSON.stringify(meData.institute));
+        }
 
         // If user is SUPER_ADMIN and currently on /admin without a school chosen, default to Delhi Public
         if (meData.user.role === "SUPER_ADMIN" && !meData.institute) {
-          setInstitute({
-            id: "1",
+          const defaultInst = {
+            id: "3aea8ce8-a615-472e-b3ed-a555f44a2ed8",
             name: "Delhi Public Academy",
             code: "DPA101",
             type: "SCHOOL",
-            institute_type: "SCHOOL"
-          });
+            institute_type: "SCHOOL",
+            logo_url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=128&q=80",
+            address: "Sector 14, Institutional Area, Rohini",
+            city: "New Delhi",
+            state: "Delhi",
+            phone: "011-23456789",
+          };
+          setInstitute(defaultInst);
+          localStorage.setItem("ia_institute", JSON.stringify(defaultInst));
         }
 
-        // Fetch stats if in school admin mode
         if (meData.user.role !== "SUPER_ADMIN" || currentPortal === "admin") {
           fetchDashboardStats(token);
         }
-      } else {
-        handleLogout();
-        return;
       }
     } catch {
-      handleLogout();
+      // Don't auto-logout if we already have local session
     } finally {
       setLoadingProfile(false);
     }
@@ -176,6 +211,8 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem("ia_token");
+    localStorage.removeItem("ia_user");
+    localStorage.removeItem("ia_institute");
     setToken(null);
     setUser(null);
     setInstitute(null);
@@ -184,46 +221,99 @@ export default function App() {
 
   // Tab switch handler that updates browser URL
   const handleTabChange = (tabId: string) => {
+    triggerGlobalLoader(250);
     setActiveTab(tabId);
     const basePath = currentPortal === "super-admin" ? "/super-admin" : "/admin";
     window.history.replaceState(null, "", `${basePath}?tab=${tabId}`);
   };
 
-  const handleSwitchToSchoolFromSuperAdmin = (schoolId: string, schoolName: string) => {
-    setInstitute({
+  const handleSwitchToSchoolFromSuperAdmin = (schoolId: string, schoolName: string, fullSchool?: any) => {
+    const inst = fullSchool ? {
+      ...fullSchool,
+      type: fullSchool.institute_type || "SCHOOL",
+      logo_url: fullSchool.logo_url || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=128&q=80",
+    } : {
       id: schoolId,
       name: schoolName,
       code: "DPA101",
       type: "SCHOOL",
-      institute_type: "SCHOOL"
-    });
+      institute_type: "SCHOOL",
+      logo_url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=128&q=80",
+    };
+    setInstitute(inst);
+    localStorage.setItem("ia_institute", JSON.stringify(inst));
     navigateTo("admin", "dashboard");
   };
 
-  // If user is not authenticated, render LoginView with selected portal
+  // 1. PUBLIC CUSTOMER SAAS LANDING PAGE (Canva Theme & Self-Registration)
+  if (currentPortal === "landing") {
+    return (
+      <CustomerLandingPage
+        onNavigateToLogin={(portal) => navigateTo(portal)}
+        onInstantLoginSuccess={(t, u, inst) => {
+          localStorage.setItem("ia_token", t);
+          localStorage.setItem("ia_user", JSON.stringify(u));
+          if (inst) {
+            localStorage.setItem("ia_institute", JSON.stringify(inst));
+          }
+          setToken(t);
+          setUser(u);
+          setInstitute(inst);
+          navigateTo("admin", "dashboard");
+        }}
+      />
+    );
+  }
+
+  // 2. If user is not authenticated, render LoginView with selected portal
   if (!token || !user) {
     if (loadingProfile) {
       return (
         <div style={{
           minHeight: "100vh",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           background: "#F8FAFC",
-          fontSize: "14px",
-          color: "#64748B",
-          fontWeight: 700
         }}>
-          Loading portal session...
+          <div className="top-loader-bar">
+            <div className="top-loader-bar-inner" />
+          </div>
+          <div style={{
+            width: "60px",
+            height: "60px",
+            borderRadius: "16px",
+            background: "linear-gradient(135deg, #3D5EE1 0%, #2E47C7 100%)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 8px 24px rgba(61, 94, 225, 0.3)",
+            marginBottom: "16px"
+          }}>
+            <School size={28} />
+          </div>
+          <div style={{ fontSize: "16px", color: "#0F172A", fontWeight: 800 }}>
+            Loading Radhix School ERP...
+          </div>
+          <div style={{ fontSize: "13px", color: "#64748B", marginTop: "4px" }}>
+            Restoring session and initializing portal data
+          </div>
         </div>
       );
     }
 
     return (
       <LoginView
-        portal={currentPortal}
+        portal={currentPortal === "super-admin" ? "super-admin" : "admin"}
         onSwitchPortal={(portal) => navigateTo(portal)}
         onLoginSuccess={(t, u, inst) => {
+          localStorage.setItem("ia_token", t);
+          localStorage.setItem("ia_user", JSON.stringify(u));
+          if (inst) {
+            localStorage.setItem("ia_institute", JSON.stringify(inst));
+          }
           setToken(t);
           setUser(u);
           setInstitute(inst);
@@ -331,6 +421,9 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC" }}>
+      {/* Global Top Progress Bar & Floating Loading Status Pill */}
+      <GlobalLoader />
+
       {/* Isolated Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -373,9 +466,24 @@ export default function App() {
               color: "#fff",
               fontWeight: 800,
               fontSize: "14px",
+              overflow: "hidden",
+              border: (!isSuperAdminPortal && (institute?.logo_url || institute?.logoUrl)) ? "1.5px solid #CBD5E1" : "none",
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
             }}>
-              {isSuperAdminPortal ? <ShieldCheck size={22} /> : <School size={22} />}
+              {isSuperAdminPortal ? (
+                <ShieldCheck size={22} />
+              ) : (institute?.logo_url || institute?.logoUrl) ? (
+                <img
+                  src={institute.logo_url || institute.logoUrl}
+                  alt={institute?.name || "School Logo"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <School size={22} />
+              )}
             </div>
 
             <div>
@@ -408,7 +516,75 @@ export default function App() {
           </div>
 
           {/* Right Action Icons & Portal Switcher */}
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            {/* Quick ERP Shortcuts */}
+            {!isSuperAdminPortal && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button
+                  onClick={() => handleTabChange("admissions")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "rgba(61, 94, 225, 0.08)",
+                    color: "var(--primary-color)",
+                    border: "1px solid rgba(61, 94, 225, 0.25)",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <Plus size={13} />
+                  <span>+ Admit</span>
+                </button>
+
+                <button
+                  onClick={() => handleTabChange("cleanliness")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "#ECFDF5",
+                    color: "#059669",
+                    border: "1px solid #A7F3D0",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <Sparkles size={13} />
+                  <span>Hygiene (4.9★)</span>
+                </button>
+
+                <button
+                  onClick={() => handleTabChange("notices")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "#FEF2F2",
+                    color: "#DC2626",
+                    border: "1px solid #FCA5A5",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <Bell size={13} />
+                  <span>Notice Push</span>
+                </button>
+              </div>
+            )}
+
             {/* Quick Portal Switcher for Super Admin users */}
             {user.role === "SUPER_ADMIN" && (
               <button
@@ -417,7 +593,7 @@ export default function App() {
                   background: isSuperAdminPortal ? "#F8FAFC" : "#EDE9FE",
                   color: isSuperAdminPortal ? "#334155" : "#6D28D9",
                   border: `1px solid ${isSuperAdminPortal ? "#CBD5E1" : "#DDD6FE"}`,
-                  padding: "8px 14px",
+                  padding: "7px 12px",
                   borderRadius: "10px",
                   fontSize: "12px",
                   fontWeight: 800,
@@ -429,11 +605,34 @@ export default function App() {
                 }}
               >
                 <ArrowRightLeft size={14} />
-                <span>{isSuperAdminPortal ? "Switch to School Admin (/admin)" : "Return to Super Admin (/super-admin)"}</span>
+                <span>{isSuperAdminPortal ? "To School Admin" : "To Super Admin"}</span>
               </button>
             )}
 
-            {/* Preskool Global Search Bar */}
+            {/* Public Customer Website & Registration Link */}
+            <button
+              onClick={() => navigateTo("landing")}
+              title="View Public Customer Website & Pricing"
+              style={{
+                background: "rgba(197, 157, 255, 0.12)",
+                color: "#7C3AED",
+                border: "1px solid rgba(197, 157, 255, 0.35)",
+                padding: "7px 12px",
+                borderRadius: "10px",
+                fontSize: "12px",
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              <Globe size={14} color="#7C3AED" />
+              <span>Customer Website</span>
+            </button>
+
+            {/* Global Search Bar */}
             <div style={{
               display: "flex",
               alignItems: "center",
@@ -442,12 +641,12 @@ export default function App() {
               border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
               borderRadius: "10px",
               padding: "7px 14px",
-              width: "280px"
+              width: "220px"
             }}>
               <Search size={15} color={isDarkMode ? "#A0ABC0" : "#8F95B2"} />
               <input
                 type="text"
-                placeholder="Search students, staff, invoices..."
+                placeholder="Search portal..."
                 style={{
                   border: "none",
                   background: "transparent",
@@ -475,7 +674,7 @@ export default function App() {
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "7px 14px",
+              padding: "7px 12px",
               background: isDarkMode ? "#1E2535" : "#F4F6FB",
               borderRadius: "10px",
               fontSize: "12px",
@@ -484,16 +683,16 @@ export default function App() {
               border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`
             }}>
               <Calendar size={14} color="#3D5EE1" />
-              <span>Academic Year : 2026 / 2027</span>
+              <span>AY 2026-27</span>
             </div>
 
-            {/* Pure Light & Dark Mode Toggle (Preskool Moon/Sun Button) */}
+            {/* Theme Toggle */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               style={{
-                width: "38px",
-                height: "38px",
+                width: "36px",
+                height: "36px",
                 borderRadius: "10px",
                 background: isDarkMode ? "#1E2535" : "#F4F6FB",
                 border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
@@ -505,36 +704,16 @@ export default function App() {
                 transition: "all 0.2s"
               }}
             >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
             </button>
-
-            {/* Messages / Helpdesk */}
-            <div
-              title="Helpdesk & Messages"
-              onClick={() => handleTabChange("tickets")}
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                background: isDarkMode ? "#1E2535" : "#F4F6FB",
-                border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: isDarkMode ? "#A0ABC0" : "#5E6278",
-                cursor: "pointer"
-              }}
-            >
-              <MessageSquare size={17} />
-            </div>
 
             {/* Notifications Bell */}
             <div
-              title="Notifications"
+              title="Official Notices & Alerts"
               onClick={() => handleTabChange("notices")}
               style={{
-                width: "38px",
-                height: "38px",
+                width: "36px",
+                height: "36px",
                 borderRadius: "10px",
                 background: isDarkMode ? "#1E2535" : "#F4F6FB",
                 border: `1px solid ${isDarkMode ? "#2B344A" : "#E9EDF4"}`,
@@ -546,42 +725,72 @@ export default function App() {
                 cursor: "pointer"
               }}
             >
-              <Bell size={18} />
+              <Bell size={17} />
               <span style={{
                 position: "absolute",
-                top: "8px",
-                right: "8px",
-                width: "7px",
-                height: "7px",
+                top: "7px",
+                right: "7px",
+                width: "8px",
+                height: "8px",
                 borderRadius: "50%",
-                background: "#EF4444"
+                background: "#EF4444",
+                boxShadow: "0 0 6px #EF4444"
               }} />
             </div>
 
-
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* User Profile Pill & Logout */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              background: isDarkMode ? "#1E2535" : "#F8FAFC",
+              padding: "4px 10px 4px 6px",
+              borderRadius: "12px",
+              border: `1px solid ${isDarkMode ? "#2B344A" : "#E2E8F0"}`
+            }}>
               <div style={{
-                width: "36px",
-                height: "36px",
+                width: "32px",
+                height: "32px",
                 borderRadius: "50%",
-                background: isSuperAdminPortal ? "#1E1B4B" : "var(--primary-color, #474A74)",
+                background: isSuperAdminPortal
+                  ? "linear-gradient(135deg, #1E1B4B 0%, #4338CA 100%)"
+                  : "var(--primary-gradient, linear-gradient(135deg, #3D5EE1 0%, #2E47C7 100%))",
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: "800",
-                fontSize: "13px"
+                fontSize: "12px"
               }}>
                 {user.role === "SUPER_ADMIN" ? "SA" : "AD"}
               </div>
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: "700", color: "#0F172A" }}>
+
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div style={{ fontSize: "12px", fontWeight: "800", color: isDarkMode ? "#F3F4F8" : "#0F172A", lineHeight: 1.2 }}>
                   {user.role === "SUPER_ADMIN" ? "Platform Owner" : "Principal"}
                 </div>
-                <div style={{ fontSize: "11px", color: "#10B981", fontWeight: "700" }}>
-                  ● Active Session
+                <div style={{ fontSize: "10.5px", color: "#10B981", fontWeight: "700" }}>
+                  ● Session Online
                 </div>
               </div>
+
+              <button
+                onClick={handleLogout}
+                title="Sign Out"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  padding: "4px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                <LogOut size={14} />
+              </button>
             </div>
           </div>
         </header>
@@ -650,15 +859,18 @@ export default function App() {
               )}
               {activeTab === "academics" && <AcademicsView institute={institute} token={token} />}
               {activeTab === "homework" && <HomeworkView token={token} institute={institute} />}
-              {activeTab === "exams" && <ExamsView />}
+              {activeTab === "exams" && <ExamsView institute={institute} />}
               {activeTab === "admissions" && <AdmissionsView token={token} institute={institute} onNavigateTab={handleTabChange} />}
               {activeTab === "staff" && <StaffView token={token} institute={institute} />}
               {activeTab === "attendance" && <AttendanceView token={token} institute={institute} />}
+              {activeTab === "cleanliness" && <CleanlinessInspectionView token={token} institute={institute} />}
+              {activeTab === "finance" && <FinanceView token={token || ""} institute={institute} />}
+              {activeTab === "online-classes" && <OnlineClassesView token={token || ""} institute={institute} />}
               {activeTab === "fees" && <FeesView token={token} institute={institute} />}
-              {activeTab === "transport" && <TransportView token={token} defaultTab="tracking" />}
-              {activeTab === "drivers" && <TransportView token={token} defaultTab="drivers" />}
-              {activeTab === "vehicles" && <TransportView token={token} defaultTab="vehicles" />}
-              {activeTab === "notices" && <NoticesView token={token || ""} />}
+              {activeTab === "transport" && <TransportView token={token} institute={institute} defaultTab="tracking" />}
+              {activeTab === "drivers" && <TransportView token={token} institute={institute} defaultTab="drivers" />}
+              {activeTab === "vehicles" && <TransportView token={token} institute={institute} defaultTab="vehicles" />}
+              {activeTab === "notices" && <NoticesView token={token || ""} institute={institute} />}
               {activeTab === "counsellor" && <AdmissionCounsellorView token={token} institute={institute} />}
 
               {activeTab === "tickets" && <TicketsView token={token} user={user} institute={institute} />}

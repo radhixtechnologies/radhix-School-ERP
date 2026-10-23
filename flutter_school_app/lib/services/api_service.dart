@@ -1127,6 +1127,46 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> getTeacherLeaves(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/school-features/teacher-leaves'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] is List) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  // --- Online Live Classes ---
+  static Future<List<Map<String, dynamic>>> getOnlineClasses(String token, {String? className}) async {
+    try {
+      final uri = Uri.parse('$baseUrl/school-features/online-classes${className != null ? '?class_name=$className' : ''}');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] is List) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
   // --- Helpdesk & Support Tickets Operations (Multi-Tier Hierarchical Routing) ---
   static List<Map<String, dynamic>> getTicketsSync({
     String? raisedByRole,

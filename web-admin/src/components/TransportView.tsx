@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { SchoolPrintHeader } from "./SchoolPrintHeader";
 import {
   Bus,
   MapPin,
@@ -139,8 +140,9 @@ export interface VehicleData {
 
 export const TransportView: React.FC<{
   token?: string | null;
+  institute?: any;
   defaultTab?: "tracking" | "drivers" | "vehicles";
-}> = ({ token, defaultTab = "vehicles" }) => {
+}> = ({ token, institute, defaultTab = "vehicles" }) => {
   const [selectedRouteId, setSelectedRouteId] = useState("Route #12");
   const [isSimulating, setIsSimulating] = useState(true);
   const [busProgress, setBusProgress] = useState(0.65);
@@ -2724,6 +2726,15 @@ export const TransportView: React.FC<{
 
             {/* Certificate Body */}
             <div style={{ padding: "24px 28px" }}>
+              <SchoolPrintHeader
+                institute={institute}
+                documentTitle="FLEET SAFETY & RC COMPLIANCE DOSSIER"
+                documentSubtitle="Ministry of Road Transport & School Bus Safety Standards"
+                documentNumber={`BUS-${viewingCertVehicle.vehicle_number}`}
+                documentDate={new Date().toISOString().slice(0, 10)}
+                badgeText="CERTIFIED ROADWORTHY"
+              />
+
               {/* Plate Highlight */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", paddingBottom: "14px", borderBottom: "2px dashed #CBD5E1" }}>
                 <div>
@@ -3232,10 +3243,18 @@ export const TransportView: React.FC<{
       {viewingIdCardDriver && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" }}>
           <div style={{ background: "#FFFFFF", borderRadius: "20px", maxWidth: "480px", width: "100%", padding: "24px", boxShadow: "0 25px 50px rgba(0,0,0,0.3)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "16px", fontWeight: 800, margin: 0 }}>Driver Verification & ID</h3>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }} className="no-print">
               <button onClick={() => setViewingIdCardDriver(null)} style={{ background: "transparent", border: "none", cursor: "pointer" }}><X size={18} /></button>
             </div>
+
+            <SchoolPrintHeader
+              institute={institute}
+              documentTitle="DRIVER IDENTITY CARD"
+              documentSubtitle="Official School Bus Fleet Operations"
+              documentNumber={`DRV-${viewingIdCardDriver.badge_number || viewingIdCardDriver.phone.slice(-4)}`}
+              documentDate="Session 2026-27"
+              badgeText="POLICE & MEDICAL VERIFIED"
+            />
             <div style={{ padding: "16px", background: "#F8FAFC", borderRadius: "14px", border: "1px solid #E2E8F0" }}>
               <h4 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: 900 }}>{viewingIdCardDriver.name}</h4>
               <p style={{ margin: "0 0 10px 0", color: "#64748B", fontSize: "12px" }}>Phone: {viewingIdCardDriver.phone}</p>

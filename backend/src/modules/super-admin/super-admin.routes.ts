@@ -205,7 +205,50 @@ router.post("/institutes", async (req: Request, res: Response): Promise<void> =>
       is_current: true,
     });
 
-    // 4. Log Super Admin action
+    // 4. Create default classes & sections
+    const defaultClasses = ["Nursery", "KG", "Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
+    for (let i = 0; i < defaultClasses.length; i++) {
+      const classId = uuidv4();
+      await db("school_classes").insert({
+        id: classId,
+        institute_id: instituteId,
+        name: defaultClasses[i],
+        numeric_order: i + 1,
+      });
+      await db("sections").insert([
+        {
+          id: uuidv4(),
+          institute_id: instituteId,
+          class_id: classId,
+          name: "A",
+          room_number: `R-${101 + i}`,
+        },
+        {
+          id: uuidv4(),
+          institute_id: instituteId,
+          class_id: classId,
+          name: "B",
+          room_number: `R-${201 + i}`,
+        },
+      ]);
+    }
+
+    // 5. Create Principal / Admin staff profile
+    await db("staff_profiles").insert({
+      id: uuidv4(),
+      institute_id: instituteId,
+      user_id: adminUserId,
+      employee_code: `${instituteCode}-ADMIN`,
+      first_name: admin_name ? admin_name.split(" ")[0] : "Principal",
+      last_name: admin_name && admin_name.includes(" ") ? admin_name.split(" ").slice(1).join(" ") : "In-Charge",
+      designation: "Principal & Head of School",
+      department: "Administration",
+      phone: admin_phone || phone || "",
+      joining_date: new Date().toISOString().split("T")[0],
+      qualification: "M.Ed, Ph.D Education Administration",
+    });
+
+    // 6. Log Super Admin action
     await db("audit_logs").insert({
       id: uuidv4(),
       institute_id: instituteId,
@@ -222,10 +265,12 @@ router.post("/institutes", async (req: Request, res: Response): Promise<void> =>
         name,
         code: instituteCode,
         instituteType: institute_type,
+        dedicatedUrl: `http://localhost:5174/admin?tenant=${instituteCode}`,
+        portalUrl: `http://localhost:5174/admin`,
         adminCredentials: {
           email: admin_email,
           temporaryPassword: finalPassword,
-          forcePasswordChangeOnFirstLogin: true,
+          forcePasswordChangeOnFirstLogin: false,
         },
       },
     });
@@ -338,12 +383,12 @@ router.get("/institutes/:id/details", async (req: Request, res: Response): Promi
 
     // Students
     let students = await db("student_profiles")
-      .where({ institute_id: id })
-      .leftJoin("classes", "student_profiles.class_id", "classes.id")
+      .where({ "student_profiles.institute_id": id })
+      .leftJoin("school_classes", "student_profiles.class_id", "school_classes.id")
       .leftJoin("sections", "student_profiles.section_id", "sections.id")
       .select(
         "student_profiles.*",
-        "classes.name as class_name",
+        "school_classes.name as class_name",
         "sections.name as section_name"
       )
       .limit(100);
